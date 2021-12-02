@@ -82,9 +82,15 @@ class GoBiggerPPO(nn.Module):
         return main_output
 
     def compute_actor(self, x: torch.Tensor):
+
+        B = x[0]['scalar_obs'].shape[0]
+        A = len(x)
+
         actor_embedding = self.shared_encoder(x)
         actor_output = self.action_type_head(actor_embedding)
         logit = actor_output['logit']
+        logit = logit.reshape(B, A, *logit.shape[1:])
+
         result = {'logit': logit}
         if self.rnn:
             result['next_state'] = self.next_state
@@ -99,10 +105,16 @@ class GoBiggerPPO(nn.Module):
 
 
     def compute_actor_critic(self, x: torch.Tensor):
+
+        B = x[0]['scalar_obs'].shape[0]
+        A = len(x)
+
         actor_embedding = critic_embedding = self.shared_encoder(x)
         value = self.value_type_head(critic_embedding)
         actor_output = self.action_type_head(actor_embedding)
-        result = {'logit': actor_output['logit'], 'value': value['pred']}
+        logit = actor_output['logit']
+        logit = logit.reshape(B, A, *logit.shape[1:])
+        result = {'logit': logit, 'value': value['pred']}
         if self.rnn:
             result['next_state'] = self.next_state
         return result

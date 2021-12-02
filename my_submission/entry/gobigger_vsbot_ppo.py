@@ -10,7 +10,6 @@ from ding.worker import BaseLearner, BattleSampleSerialCollector, BattleInteract
 from ding.envs import SyncSubprocessEnvManager
 from ding.policy import PPOPolicy
 from ding.utils import set_pkg_seed
-from ding.rl_utils import get_epsilon_greedy_fn
 from gobigger.agents import BotAgent
 
 from envs import GoBiggerEnv

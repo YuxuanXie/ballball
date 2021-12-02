@@ -1,7 +1,7 @@
 from easydict import EasyDict
 
 gobigger_ppo_config = dict(
-    exp_name='gobigger_no_spatial_ppo',
+    exp_name='results/gobigger_no_spatial_ppo',
     env=dict(
         collector_env_num=64,
         evaluator_env_num=8,
@@ -27,9 +27,7 @@ gobigger_ppo_config = dict(
             scalar_shape=50,
             action_type_shape=16,
             per_unit_shape=31,
-            # critic_head_hidden_size=128,
-            # actor_head_hidden_size=128,
-            rnn=True,
+            rnn=False,
         ),
         learn=dict(
             update_per_collect=4,
