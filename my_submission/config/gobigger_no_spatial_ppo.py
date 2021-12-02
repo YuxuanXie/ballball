@@ -3,9 +3,9 @@ from easydict import EasyDict
 gobigger_ppo_config = dict(
     exp_name='gobigger_no_spatial_ppo',
     env=dict(
-        collector_env_num=8,
-        evaluator_env_num=3,
-        n_evaluator_episode=3,
+        collector_env_num=128,
+        evaluator_env_num=8,
+        n_evaluator_episode=8,
         stop_value=1e10,
         player_num_per_team=3,
         team_num=4,
@@ -24,15 +24,16 @@ gobigger_ppo_config = dict(
         cuda=False,
         continuous=False,
         model=dict(
-            obs_shape=50,
-            action_shape=16,
-            encoder_hidden_size_list=[64, 64, 128],
-            critic_head_hidden_size=128,
-            actor_head_hidden_size=128,
+            scalar_shape=50,
+            action_type_shape=16,
+            per_unit_shape=31,
+            # critic_head_hidden_size=128,
+            # actor_head_hidden_size=128,
+            rnn=True,
         ),
         learn=dict(
-            epoch_per_collect=4,
-            batch_size=128,
+            update_per_collect=4,
+            batch_size=256,
             learning_rate=0.0001,
             value_weight=1.0,
             entropy_weight=0.01,
@@ -46,7 +47,7 @@ gobigger_ppo_config = dict(
         ),
         eval=dict(
             evaluator=dict(
-                eval_freq=100,
+                eval_freq=500,
             ),
         ),
     ),
