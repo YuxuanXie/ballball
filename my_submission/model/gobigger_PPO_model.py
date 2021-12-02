@@ -1,3 +1,4 @@
+from typing import ForwardRef
 import torch
 import torch.nn as nn
 from ding.torch_utils import MLP, get_lstm, Transformer
@@ -101,3 +102,6 @@ class GoBiggerPPO(nn.Module):
         if self.rnn:
             result['next_state'] = self.next_state
         return result
+
+    def forward(self, x:torch.Tensor):
+        return self.compute_actor_critic(x)
