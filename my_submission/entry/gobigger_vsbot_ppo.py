@@ -129,6 +129,11 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
     )
 
     for _ in range(max_iterations):
+        # Sampling data from environments
+        new_data, _ = collector.collect(train_iter=learner.train_iter)
+        for i in range(cfg.policy.learn.update_per_collect):
+            learner.train(new_data, collector.envstep)
+
         if random_evaluator.should_eval(learner.train_iter):
             random_stop_flag, random_reward, _ = random_evaluator.eval(
                 learner.save_checkpoint, learner.train_iter, collector.envstep)
@@ -136,11 +141,6 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
                 learner.save_checkpoint, learner.train_iter, collector.envstep)
             if random_stop_flag and rule_stop_flag:
                 break
-
-        # Sampling data from environments
-        new_data, _ = collector.collect(train_iter=learner.train_iter)
-        for i in range(cfg.policy.learn.update_per_collect):
-            learner.train(new_data, collector.envstep)
 
 
 if __name__ == "__main__":

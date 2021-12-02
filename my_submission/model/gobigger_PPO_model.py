@@ -42,7 +42,7 @@ class GoBiggerPPO(nn.Module):
             self.main = MLP(sum(encoder_output_size_list), 128, 128, layer_num=2, activation=self.activation)
         # head
         self.action_type_head = DiscreteHead(128, action_type_shape, layer_num=2, activation=self.activation)
-        self.value_type_head = RegressionHead(1, 1, layer_num=2, activation=self.activation)
+        self.value_type_head = RegressionHead(128, 1, layer_num=2, activation=self.activation)
 
         self.next_state = None
 
