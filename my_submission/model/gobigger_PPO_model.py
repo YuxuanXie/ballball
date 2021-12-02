@@ -4,9 +4,13 @@ import torch.nn as nn
 from ding.torch_utils import MLP, get_lstm, Transformer
 from ding.model import DiscreteHead, RegressionHead
 from ding.utils import list_split
+from typing import Union, Dict, Optional
+
 
 
 class GoBiggerPPO(nn.Module):
+
+    mode = ['compute_actor', 'compute_critic', 'compute_actor_critic']
 
     def __init__(
             self,
@@ -103,5 +107,6 @@ class GoBiggerPPO(nn.Module):
             result['next_state'] = self.next_state
         return result
 
-    def forward(self, x:torch.Tensor):
-        return self.compute_actor_critic(x)
+    def forward(self, inputs: Union[torch.Tensor, Dict], mode: str) -> Dict:
+        assert mode in self.mode, "not support forward mode: {}/{}".format(mode, self.mode)
+        return getattr(self, mode)(inputs)

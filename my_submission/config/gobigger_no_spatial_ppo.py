@@ -3,7 +3,7 @@ from easydict import EasyDict
 gobigger_ppo_config = dict(
     exp_name='gobigger_no_spatial_ppo',
     env=dict(
-        collector_env_num=128,
+        collector_env_num=64,
         evaluator_env_num=8,
         n_evaluator_episode=8,
         stop_value=1e10,
