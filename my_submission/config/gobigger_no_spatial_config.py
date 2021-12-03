@@ -3,7 +3,7 @@ from easydict import EasyDict
 gobigger_dqn_config = dict(
     exp_name='results/gobigger_no_spatial_baseline_dqn',
     env=dict(
-        collector_env_num=256,
+        collector_env_num=32,
         evaluator_env_num=8,
         n_evaluator_episode=8,
         stop_value=1e10,
@@ -31,12 +31,12 @@ gobigger_dqn_config = dict(
         nstep=3,
         discount_factor=0.99,
         learn=dict(
-            update_per_collect=4,
-            batch_size=256,
+            update_per_collect=2,
+            batch_size=512,
             learning_rate=0.0005,
             ignore_done=True,
         ),
-        collect=dict(n_sample=128, unroll_len=1),
+        collect=dict(n_sample=1024, unroll_len=1),
         eval=dict(evaluator=dict(eval_freq=1000, )),
         other=dict(
             eps=dict(
@@ -45,7 +45,7 @@ gobigger_dqn_config = dict(
                 end=0.1,
                 decay=100000,
             ),
-            replay_buffer=dict(replay_buffer_size=500000, ),
+            replay_buffer=dict(replay_buffer_size=100000, ),
         ),
     ),
 )
