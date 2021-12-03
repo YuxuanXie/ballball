@@ -17,7 +17,7 @@ from gobigger.agents import BotAgent
 
 from envs import GoBiggerEnv
 from model import GoBiggerStructedNetwork
-from config.gobigger_no_spatial_config import main_config
+from config.no_spatial import main_config
 
 
 class RandomPolicy:
@@ -110,6 +110,7 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
     learner = BaseLearner(
         cfg.policy.learn.learner, policy.learn_mode, tb_logger, exp_name=cfg.exp_name, instance_name='learner'
     )
+
     collector = BattleSampleSerialCollector(
         cfg.policy.collect.collector, collector_env, [policy.collect_mode] + rule_collect_policy, tb_logger, exp_name=cfg.exp_name
     )
@@ -129,10 +130,12 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
                 break
 
         eps = epsilon_greedy(collector.envstep)
+
         # Sampling data from environments
         new_data, _ = collector.collect(train_iter=learner.train_iter, policy_kwargs={'eps': eps})
         replay_buffer.push(new_data[0], cur_collector_envstep=collector.envstep)
         replay_buffer.push(new_data[1], cur_collector_envstep=collector.envstep)
+
         for i in range(cfg.policy.learn.update_per_collect):
             train_data = replay_buffer.sample(learner.policy.get_attribute('batch_size'), learner.train_iter)
             learner.train(train_data, collector.envstep)

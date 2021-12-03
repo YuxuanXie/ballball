@@ -35,6 +35,10 @@ gobigger_dqn_config = dict(
             batch_size=512,
             learning_rate=0.0005,
             ignore_done=True,
+            learner=dict(
+                log_show_after_iter =10, 
+                save_ckpt_after_iter=100,
+            )
         ),
         collect=dict(n_sample=1024, unroll_len=1),
         eval=dict(evaluator=dict(eval_freq=1000, )),
