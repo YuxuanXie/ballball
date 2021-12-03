@@ -4,8 +4,8 @@ gobigger_dqn_config = dict(
     exp_name='results/gobigger_no_spatial_baseline_dqn',
     env=dict(
         collector_env_num=256,
-        evaluator_env_num=3,
-        n_evaluator_episode=3,
+        evaluator_env_num=8,
+        n_evaluator_episode=8,
         stop_value=1e10,
         player_num_per_team=3,
         team_num=4,
@@ -32,8 +32,8 @@ gobigger_dqn_config = dict(
         discount_factor=0.99,
         learn=dict(
             update_per_collect=4,
-            batch_size=128,
-            learning_rate=0.0003,
+            batch_size=256,
+            learning_rate=0.0005,
             ignore_done=True,
         ),
         collect=dict(n_sample=128, unroll_len=1),

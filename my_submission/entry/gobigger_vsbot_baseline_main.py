@@ -102,9 +102,6 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
     policy = DQNPolicy(cfg.policy, model=model)
     team_num = cfg.env.team_num
     rule_collect_policy = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
-    random_eval_policy = RandomPolicy(
-        cfg.policy.model.action_type_shape, cfg.env.player_num_per_team
-    )
     rule_eval_policy = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
     eps_cfg = cfg.policy.other.eps
     epsilon_greedy = get_epsilon_greedy_fn(eps_cfg.start, eps_cfg.end, eps_cfg.decay, eps_cfg.type)
@@ -114,37 +111,23 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
         cfg.policy.learn.learner, policy.learn_mode, tb_logger, exp_name=cfg.exp_name, instance_name='learner'
     )
     collector = BattleSampleSerialCollector(
-        cfg.policy.collect.collector,
-        collector_env, [policy.collect_mode] + rule_collect_policy,
-        tb_logger,
-        exp_name=cfg.exp_name
-    )
-    random_evaluator = BattleInteractionSerialEvaluator(
-        cfg.policy.eval.evaluator,
-        random_evaluator_env, [policy.eval_mode] + [random_eval_policy for _ in range(team_num - 1)],
-        tb_logger,
-        exp_name=cfg.exp_name,
-        instance_name='random_evaluator'
+        cfg.policy.collect.collector, collector_env, [policy.collect_mode] + rule_collect_policy, tb_logger, exp_name=cfg.exp_name
     )
     rule_evaluator = BattleInteractionSerialEvaluator(
-        cfg.policy.eval.evaluator,
-        rule_evaluator_env, [policy.eval_mode] + rule_eval_policy,
-        tb_logger,
-        exp_name=cfg.exp_name,
-        instance_name='rule_evaluator'
+        cfg.policy.eval.evaluator, rule_evaluator_env, [policy.eval_mode] + rule_eval_policy, tb_logger, exp_name=cfg.exp_name, instance_name='rule_evaluator'
     )
-    replay_buffer = NaiveReplayBuffer(cfg.policy.other.replay_buffer, exp_name=cfg.exp_name)
+
+    replay_buffer = NaiveReplayBuffer(cfg.policy.other.replay_buffer, tb_logger, exp_name=cfg.exp_name)
 
     for _ in range(max_iterations):
-        if random_evaluator.should_eval(learner.train_iter):
-            random_stop_flag, random_reward, _ = random_evaluator.eval(
-                learner.save_checkpoint, learner.train_iter, collector.envstep
-            )
+        
+        if rule_evaluator.should_eval(learner.train_iter):
             rule_stop_flag, rule_reward, _ = rule_evaluator.eval(
                 learner.save_checkpoint, learner.train_iter, collector.envstep
             )
-            if random_stop_flag and rule_stop_flag:
+            if rule_stop_flag:
                 break
+
         eps = epsilon_greedy(collector.envstep)
         # Sampling data from environments
         new_data, _ = collector.collect(train_iter=learner.train_iter, policy_kwargs={'eps': eps})
