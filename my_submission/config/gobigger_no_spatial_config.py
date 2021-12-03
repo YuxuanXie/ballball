@@ -1,9 +1,9 @@
 from easydict import EasyDict
 
 gobigger_dqn_config = dict(
-    exp_name='gobigger_no_spatial_baseline_dqn',
+    exp_name='results/gobigger_no_spatial_baseline_dqn',
     env=dict(
-        collector_env_num=8,
+        collector_env_num=256,
         evaluator_env_num=3,
         n_evaluator_episode=3,
         stop_value=1e10,
@@ -41,11 +41,11 @@ gobigger_dqn_config = dict(
         other=dict(
             eps=dict(
                 type='exp',
-                start=0.95,
+                start=0.5,
                 end=0.1,
                 decay=100000,
             ),
-            replay_buffer=dict(replay_buffer_size=20000, ),
+            replay_buffer=dict(replay_buffer_size=500000, ),
         ),
     ),
 )

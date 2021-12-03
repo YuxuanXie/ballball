@@ -4,7 +4,6 @@ import copy
 from tensorboardX import SummaryWriter
 import sys
 sys.path.append('..')
-import datetime
 
 from ding.config import compile_config
 from ding.worker import BaseLearner, BattleSampleSerialCollector, BattleInteractionSerialEvaluator, NaiveReplayBuffer
@@ -37,7 +36,6 @@ class RandomPolicy:
 
 
 def main(cfg, seed=0, max_iterations=int(1e10)):
-    cfg.exp_name = cfg.exp_name + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     cfg = compile_config(
         cfg,
         SyncSubprocessEnvManager,
