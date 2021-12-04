@@ -31,7 +31,7 @@ gobigger_dqn_config = dict(
         nstep=3,
         discount_factor=0.99,
         learn=dict(
-            update_per_collect=2,
+            update_per_collect=8,
             batch_size=512,
             learning_rate=0.0005,
             ignore_done=True,
@@ -41,7 +41,7 @@ gobigger_dqn_config = dict(
             )
         ),
         collect=dict(n_sample=1024, unroll_len=1),
-        eval=dict(evaluator=dict(eval_freq=1000, )),
+        eval=dict(evaluator=dict(eval_freq=200, )),
         other=dict(
             eps=dict(
                 type='exp',
