@@ -97,8 +97,8 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
     set_pkg_seed(seed, use_cuda=cfg.policy.cuda)
 
     model = GoBiggerStructedNetwork(**cfg.policy.model)
-    load_path='/home/xyx/git/GoBigger-Challenge-2021/di_baseline/my_submission/entry/gobigger_no_spatial_baseline_dqn/ckpt/ckpt_best.pth.tar'
-    model.load_state_dict(torch.load(load_path , map_location='cpu')['model'])
+    # load_path='/home/xyx/git/GoBigger-Challenge-2021/di_baseline/my_submission/entry/gobigger_no_spatial_baseline_dqn/ckpt/ckpt_best.pth.tar'
+    # model.load_state_dict(torch.load(load_path , map_location='cpu')['model'])
     policy = DQNPolicy(cfg.policy, model=model)
     team_num = cfg.env.team_num
     rule_collect_policy = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
