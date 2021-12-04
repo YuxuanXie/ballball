@@ -21,7 +21,9 @@ from model import GoBiggerStructedNetwork
 from config.no_spatial import main_config
 
 from worker import remote_worker, CloudpickleWrapper
-from multiprocessing import Pipe
+from multiprocessing import Pipe, Process
+import time
+import pickle
 
 
 class RandomPolicy:
@@ -127,31 +129,29 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
     replay_buffer = NaiveReplayBuffer(cfg.policy.other.replay_buffer, tb_logger, exp_name=cfg.exp_name)
 
     parent, child = Pipe()
-    remote_worker(child, CloudpickleWrapper(cfg))
-    parent.send({"state_dict":policy.learn_mode.state_dict(), "train_iter": learner.train_iter})
+    p = Process(target=remote_worker, args=(child, CloudpickleWrapper(cfg)))
+    # p.daemon=True
+    p.start()
+    
+    # child.close()
+    
+    # parent.send({"state_dict": policy.learn_mode.state_dict(), "train_iter": learner.train_iter})
+    parent.send({"state_dict": [1], "train_iter": learner.train_iter})
 
     for _ in range(max_iterations):
         
-        # if rule_evaluator.should_eval(learner.train_iter):
-        #     rule_stop_flag, rule_reward, _ = rule_evaluator.eval(
-        #         learner.save_checkpoint, learner.train_iter, collector.envstep
-        #     )
-        #     if rule_stop_flag:
-        #         break
-
-        # eps = epsilon_greedy(collector.envstep)
-
-        # Sampling data from environments
-        # new_data, _ = collector.collect(train_iter=learner.train_iter, policy_kwargs={'eps': eps})
-        if parent.poll():
+        if parent.poll() or learner.policy.get_attribute('batch_size') > replay_buffer.count():
+            print("waiting!")
             worker_info = parent.recv()
             collector_envstep = worker_info["env_step"]
             new_data = worker_info["new_data"]
 
-        replay_buffer.push(new_data[0], cur_collector_envstep=collector_envstep)
-        replay_buffer.push(new_data[1], cur_collector_envstep=collector_envstep)
+            replay_buffer.push(new_data[0], cur_collector_envstep=collector_envstep)
+            replay_buffer.push(new_data[1], cur_collector_envstep=collector_envstep)
+
 
         for i in range(cfg.policy.learn.update_per_collect):
+            print("begin training!")
             train_data = replay_buffer.sample(learner.policy.get_attribute('batch_size'), learner.train_iter)
             learner.train(train_data, collector_envstep)
         

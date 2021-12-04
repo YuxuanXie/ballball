@@ -1,7 +1,7 @@
 from easydict import EasyDict
 
 gobigger_dqn_config = dict(
-    exp_name='results/gobigger_no_spatial_baseline_dqn',
+    exp_name='results/vsbot',
     env=dict(
         collector_env_num=32,
         evaluator_env_num=8,
@@ -31,25 +31,31 @@ gobigger_dqn_config = dict(
         nstep=3,
         discount_factor=0.99,
         learn=dict(
-            update_per_collect=8,
-            batch_size=512,
+            update_per_collect=2,
+            batch_size=8,
             learning_rate=0.0005,
             ignore_done=True,
             learner=dict(
                 log_show_after_iter =10, 
-                save_ckpt_after_iter=100,
+                save_ckpt_after_iter=50,
             )
         ),
-        collect=dict(n_sample=1024, unroll_len=1),
+        collect=dict(
+            n_sample=8, 
+            unroll_len=1,
+            collector=dict(
+                collect_print_freq=10,
+                )
+            ),
         eval=dict(evaluator=dict(eval_freq=200, )),
         other=dict(
             eps=dict(
                 type='exp',
-                start=0.5,
-                end=0.1,
+                start=1.0,
+                end=0.05,
                 decay=100000,
             ),
-            replay_buffer=dict(replay_buffer_size=100000, ),
+            replay_buffer=dict(replay_buffer_size=50000, ),
         ),
     ),
 )

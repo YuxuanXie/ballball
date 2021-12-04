@@ -19,6 +19,7 @@ from gobigger.agents import BotAgent
 from envs import GoBiggerEnv
 from model import GoBiggerStructedNetwork
 from config.no_spatial import main_config
+import pickle
 
 
 class RulePolicy:
@@ -85,6 +86,8 @@ class CollectorManager():
         self.collector = BattleSampleSerialCollector(self.cfg.policy.collect.collector, self.collector_env, [self.policy.collect_mode] + self.rule_collect_policy, exp_name=self.cfg.exp_name)
 
     def update_model(self, state_dict):
+        print("Update model!")
+        # print(state_dict)
         self.policy.collect_mode.load_state_dict(state_dict)
 
 
@@ -96,25 +99,32 @@ class CollectorManager():
     
     def start(self, ):
 
+        print("waiting for first model")
         learner_info = self.conn.recv()
-        state_dict = learner_info["state_dict"]
+        print("Get mdoel")
+        print(learner_info.keys())
+        # print(pickle.loads(learner_info['state_dict']))
+        # state_dict = pickle.loads(learner_info['state_dict'])
         self.train_iter = learner_info["train_iter"]
-
-        self.update_model(state_dict)
+        # self.update_model(state_dict)
+        print("Get mdoel")
 
         while True:
             if self.conn.poll():
                 learner_info = self.conn.recv()
                 state_dict = learner_info["state_dict"]
                 self.train_iter = learner_info["train_iter"]
-                self.update_model(state_dict)
+                # self.update_model(state_dict)
             
+            print("Start collecting")
             eps = self.epsilon_greedy(self.collector.envstep)
             new_data, _ = self.collector.collect(train_iter=self.train_iter, policy_kwargs={'eps': eps})
-            self.send(new_data)
+            self.conn.send_exp(new_data)
+            print("Send data")
 
 
 
 def remote_worker(conn, cfg):
     collector = CollectorManager(conn, cfg.x)
+    print("start remote worker!")
     collector.start()
