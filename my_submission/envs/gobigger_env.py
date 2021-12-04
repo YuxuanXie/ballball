@@ -247,22 +247,6 @@ class GoBiggerEnv(BaseEnv):
                 for i in range(len(rank)):
                     team_reward[rank[i]] += final_reward[i]
             
-            # reward = []
-            # for n in self._player_names:
-            #     team_name = str(int(n) // self._player_num_per_team)
-            #     last_size = self._last_team_size[team_name]
-            #     cur_size = global_state['leaderboard'][team_name]
-            #     reward.append(np.array([cur_size - last_size]))
-            # team_reward = []
-            # print(f"reward = {reward}")
-            # print(f"global_state = {global_state}")
-            
-            # for i in range(self._team_num):
-            #     team_reward_item = sum(reward[i * self._player_num_per_team:(i + 1) * self._player_num_per_team])
-            #     team_reward.append(team_reward_item)
-
-            # print(f"team_reward = {team_reward}")
-
         self._last_team_size = global_state['leaderboard']
         return team_reward
 
