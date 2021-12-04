@@ -218,21 +218,51 @@ class GoBiggerEnv(BaseEnv):
 
     def _get_reward(self, obs: tuple) -> list:
         global_state, _ = obs
+
+        # reward shaping:
+        # 1. difference incremental reward -> cur_size - last_size -> 0.01 * (-40, 40) clip (-1, 1)
+        # 2. team rank reward -> cur_size - max_size -> * 0.01 clip(-1, 1)
+        # 3. team final win/loss reward -> 5 for 1st; 2 for 2nd; -2 for 3rd; -5 for 4th.
+
         if self._last_team_size is None:
             team_reward = [np.array([0.]) for __ in range(self._team_num)]
         else:
-            reward = []
-            for n in self._player_names:
-                team_name = str(int(n) // self._player_num_per_team)
-                last_size = self._last_team_size[team_name]
-                cur_size = global_state['leaderboard'][team_name]
-                reward.append(np.array([cur_size - last_size]))
             team_reward = []
             for i in range(self._team_num):
-                team_reward_item = sum(reward[i * self._player_num_per_team:(i + 1) * self._player_num_per_team])
-                if self._train:
-                    team_reward_item = np.clip(team_reward_item / 2, -1, 1)
+                team_name = str(i)
+                last_size = self._last_team_size[team_name]
+                cur_size = global_state['leaderboard'][team_name]
+                diff_incremental_reawrd = np.clip(np.array([cur_size - last_size]) * 0.01, -1, 1)
+                max_size = max(list(global_state['leaderboard'].values()))
+                team_rank_reward = np.clip(np.array([cur_size - max_size]) * 0.001, -1, 0) + 0.5
+
+                team_reward_item = 0.5 * diff_incremental_reawrd + team_rank_reward
+
                 team_reward.append(team_reward_item)
+
+            if global_state['last_time'] >= global_state['total_time']:
+                rank = np.array(list(global_state['leaderboard'].values()))
+                rank = np.argsort(rank)[::-1]
+                final_reward = [5, 2, -2, -5]
+                for i in range(len(rank)):
+                    team_reward[rank[i]] += final_reward[i]
+            
+            # reward = []
+            # for n in self._player_names:
+            #     team_name = str(int(n) // self._player_num_per_team)
+            #     last_size = self._last_team_size[team_name]
+            #     cur_size = global_state['leaderboard'][team_name]
+            #     reward.append(np.array([cur_size - last_size]))
+            # team_reward = []
+            # print(f"reward = {reward}")
+            # print(f"global_state = {global_state}")
+            
+            # for i in range(self._team_num):
+            #     team_reward_item = sum(reward[i * self._player_num_per_team:(i + 1) * self._player_num_per_team])
+            #     team_reward.append(team_reward_item)
+
+            # print(f"team_reward = {team_reward}")
+
         self._last_team_size = global_state['leaderboard']
         return team_reward
 
