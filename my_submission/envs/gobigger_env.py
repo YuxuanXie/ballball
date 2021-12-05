@@ -243,7 +243,7 @@ class GoBiggerEnv(BaseEnv):
             if global_state['last_time'] >= global_state['total_time']:
                 rank = np.array(list(global_state['leaderboard'].values()))
                 rank = np.argsort(rank)[::-1]
-                final_reward = [5, 2, -2, -5]
+                final_reward = [5, -1, -2, -5]
                 for i in range(len(rank)):
                     team_reward[rank[i]] += final_reward[i]
             

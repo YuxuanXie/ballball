@@ -23,10 +23,11 @@ from config.no_spatial import main_config
 class RandomPolicy:
 
     def __init__(self, action_type_shape: int, player_num: int):
+        self.collect_data = False  # necessary
         self.action_type_shape = action_type_shape
         self.player_num = player_num
 
-    def forward(self, data: dict) -> dict:
+    def forward(self, data: dict, **kwargs) -> dict:
         return {
             env_id: {
                 'action': np.random.randint(0, self.action_type_shape, size=(self.player_num))
@@ -101,8 +102,12 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
     # model.load_state_dict(torch.load(load_path , map_location='cpu')['model'])
     policy = DQNPolicy(cfg.policy, model=model)
     team_num = cfg.env.team_num
-    rule_collect_policy = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
-    rule_eval_policy = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
+    # rule_collect_policy = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
+    # rule_eval_policy = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
+
+    rule_collect_policy = [RulePolicy(1, cfg.env.player_num_per_team), RandomPolicy(2, cfg.env.player_num_per_team), RandomPolicy(3, cfg.env.player_num_per_team) ] 
+    rule_eval_policy = [RulePolicy(1, cfg.env.player_num_per_team), RandomPolicy(2, cfg.env.player_num_per_team), RandomPolicy(3, cfg.env.player_num_per_team) ] 
+
     eps_cfg = cfg.policy.other.eps
     epsilon_greedy = get_epsilon_greedy_fn(eps_cfg.start, eps_cfg.end, eps_cfg.decay, eps_cfg.type)
 
@@ -111,6 +116,7 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
         cfg.policy.learn.learner, policy.learn_mode, tb_logger, exp_name=cfg.exp_name, instance_name='learner'
     )
 
+    
     collector = BattleSampleSerialCollector(
         cfg.policy.collect.collector, collector_env, [policy.collect_mode] + rule_collect_policy, tb_logger, exp_name=cfg.exp_name
     )
@@ -120,25 +126,26 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
 
     replay_buffer = NaiveReplayBuffer(cfg.policy.other.replay_buffer, tb_logger, exp_name=cfg.exp_name)
 
-    for _ in range(max_iterations):
+    # for _ in range(max_iterations):
+    for _ in range(1):
         
-        if rule_evaluator.should_eval(learner.train_iter):
-            rule_stop_flag, rule_reward, _ = rule_evaluator.eval(
-                learner.save_checkpoint, learner.train_iter, collector.envstep
-            )
-            if rule_stop_flag:
-                break
+        # if rule_evaluator.should_eval(learner.train_iter):
+        #     rule_stop_flag, rule_reward, _ = rule_evaluator.eval(
+        #         learner.save_checkpoint, learner.train_iter, collector.envstep
+        #     )
+        #     if rule_stop_flag:
+        #         break
 
         eps = epsilon_greedy(collector.envstep)
-
+        
         # Sampling data from environments
         new_data, _ = collector.collect(train_iter=learner.train_iter, policy_kwargs={'eps': eps})
         replay_buffer.push(new_data[0], cur_collector_envstep=collector.envstep)
         replay_buffer.push(new_data[1], cur_collector_envstep=collector.envstep)
 
-        for i in range(cfg.policy.learn.update_per_collect):
-            train_data = replay_buffer.sample(learner.policy.get_attribute('batch_size'), learner.train_iter)
-            learner.train(train_data, collector.envstep)
+        # for i in range(cfg.policy.learn.update_per_collect):
+        #     train_data = replay_buffer.sample(learner.policy.get_attribute('batch_size'), learner.train_iter)
+        #     learner.train(train_data, collector.envstep)
 
 
 if __name__ == "__main__":

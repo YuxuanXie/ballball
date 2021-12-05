@@ -3,15 +3,19 @@ from easydict import EasyDict
 gobigger_dqn_config = dict(
     exp_name='results/vsbot',
     env=dict(
-        collector_env_num=32,
-        evaluator_env_num=8,
-        n_evaluator_episode=8,
+        collector_env_num=2,
+        evaluator_env_num=2,
+        n_evaluator_episode=2,
         stop_value=1e10,
         player_num_per_team=3,
         team_num=4,
-        match_time=200,
-        map_height=1000,
-        map_width=1000,
+        match_time=60,
+        map_height=300,
+        map_width=300,
+        # team_num=4,
+        # match_time=200,
+        # map_height=1000,
+        # map_width=1000,
         resize_height=160,
         resize_width=160,
         spatial=False,
@@ -25,6 +29,8 @@ gobigger_dqn_config = dict(
         model=dict(
             scalar_shape=50,
             per_unit_shape=31,
+            # scalar_shape=36,
+            # per_unit_shape=23,
             action_type_shape=16,
             rnn=False,
         ),
@@ -32,16 +38,22 @@ gobigger_dqn_config = dict(
         discount_factor=0.99,
         learn=dict(
             update_per_collect=2,
-            batch_size=64,
-            learning_rate=0.0001,
+            batch_size=512,
+            learning_rate=0.0005,
             ignore_done=True,
             learner=dict(
                 log_show_after_iter =10, 
                 save_ckpt_after_iter=100,
             )
         ),
-        collect=dict(n_sample=64, unroll_len=1),
-        eval=dict(evaluator=dict(eval_freq=200, )),
+        collect=dict(
+            n_sample=512, 
+            unroll_len=1, 
+            collector=dict(
+                collect_print_freq = 10,
+            ),
+        ),
+        eval=dict(evaluator=dict(eval_freq=100, )),
         other=dict(
             eps=dict(
                 type='exp',

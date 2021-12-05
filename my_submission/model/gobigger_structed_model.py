@@ -36,7 +36,7 @@ class GoBiggerStructedNetwork(nn.Module):
             self.rnn = None
             self.main = MLP(sum(encoder_output_size_list), 128, 128, layer_num=2, activation=self.activation)
         # head
-        self.action_type_head = DiscreteHead(128, action_type_shape, layer_num=2, activation=self.activation)
+        self.action_type_head = DiscreteHead(128, action_type_shape, layer_num=1, activation=self.activation)
 
     def forward(self, obs: list) -> dict:
         """
