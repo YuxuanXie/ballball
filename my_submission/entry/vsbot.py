@@ -97,14 +97,15 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
     rule_evaluator_env.seed(seed, dynamic_seed=False)
     set_pkg_seed(seed, use_cuda=cfg.policy.cuda)
 
-    model = GoBiggerStructedNetwork(**cfg.policy.model)
+    model_cpu = GoBiggerStructedNetwork(**cfg.policy.model)
     # load_path='/home/xyx/git/GoBigger-Challenge-2021/di_baseline/my_submission/entry/gobigger_no_spatial_baseline_dqn/ckpt/ckpt_best.pth.tar'
     # model.load_state_dict(torch.load(load_path , map_location='cpu')['model'])
     cfg.policy.cuda=False
-    policy_cpu = DQNPolicy(cfg.policy, model=model)
+    policy_cpu = DQNPolicy(cfg.policy, model=model_cpu)
 
+    model_gpu = GoBiggerStructedNetwork(**cfg.policy.model)
     cfg.policy.cuda=True
-    policy_gpu = DQNPolicy(cfg.policy, model=model)
+    policy_gpu = DQNPolicy(cfg.policy, model=model_gpu)
 
 
     # rule_collect_policy = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
@@ -125,21 +126,21 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
     collector = BattleSampleSerialCollector(
         cfg.policy.collect.collector, collector_env, [policy_cpu.collect_mode] + rule_collect_policy, tb_logger, exp_name=cfg.exp_name
     )
-    rule_evaluator = BattleInteractionSerialEvaluator(
-        cfg.policy.eval.evaluator, rule_evaluator_env, [policy_cpu.eval_mode] + rule_eval_policy, tb_logger, exp_name=cfg.exp_name, instance_name='rule_evaluator'
-    )
+    # rule_evaluator = BattleInteractionSerialEvaluator(
+    #     cfg.policy.eval.evaluator, rule_evaluator_env, [policy_cpu.eval_mode] + rule_eval_policy, tb_logger, exp_name=cfg.exp_name, instance_name='rule_evaluator'
+    # )
 
     replay_buffer = NaiveReplayBuffer(cfg.policy.other.replay_buffer, tb_logger, exp_name=cfg.exp_name)
 
-    # for _ in range(max_iterations):
-    for _ in range(1):
+    for _ in range(max_iterations):
+    # for _ in range(2):
         
         # if rule_evaluator.should_eval(learner.train_iter):
         #     rule_stop_flag, rule_reward, _ = rule_evaluator.eval(
         #         learner.save_checkpoint, learner.train_iter, collector.envstep
         #     )
-        #     if rule_stop_flag:
-        #         break
+            # if rule_stop_flag:
+            #     break
 
         eps = epsilon_greedy(collector.envstep)
         
@@ -148,9 +149,14 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
         replay_buffer.push(new_data[0], cur_collector_envstep=collector.envstep)
         replay_buffer.push(new_data[1], cur_collector_envstep=collector.envstep)
 
-        # for i in range(cfg.policy.learn.update_per_collect):
-        #     train_data = replay_buffer.sample(learner.policy.get_attribute('batch_size'), learner.train_iter)
-        #     learner.train(train_data, collector.envstep)
+        tb_logger.flush()
+
+        for i in range(cfg.policy.learn.update_per_collect):
+            train_data = replay_buffer.sample(learner.policy.get_attribute('batch_size'), learner.train_iter)
+            if train_data:
+                learner.train(train_data, collector.envstep)
+
+        policy_cpu.collect_mode.load_state_dict(learner.policy.state_dict())
 
 
 if __name__ == "__main__":
