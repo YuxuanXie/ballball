@@ -100,8 +100,13 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
     model = GoBiggerStructedNetwork(**cfg.policy.model)
     # load_path='/home/xyx/git/GoBigger-Challenge-2021/di_baseline/my_submission/entry/gobigger_no_spatial_baseline_dqn/ckpt/ckpt_best.pth.tar'
     # model.load_state_dict(torch.load(load_path , map_location='cpu')['model'])
-    policy = DQNPolicy(cfg.policy, model=model)
-    team_num = cfg.env.team_num
+    cfg.policy.cuda=False
+    policy_cpu = DQNPolicy(cfg.policy, model=model)
+
+    cfg.policy.cuda=True
+    policy_gpu = DQNPolicy(cfg.policy, model=model)
+
+
     # rule_collect_policy = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
     # rule_eval_policy = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
 
@@ -113,15 +118,15 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
 
     tb_logger = SummaryWriter(os.path.join('./{}/log/'.format(cfg.exp_name), 'serial'))
     learner = BaseLearner(
-        cfg.policy.learn.learner, policy.learn_mode, tb_logger, exp_name=cfg.exp_name, instance_name='learner'
+        cfg.policy.learn.learner, policy_gpu.learn_mode, tb_logger, exp_name=cfg.exp_name, instance_name='learner'
     )
 
     
     collector = BattleSampleSerialCollector(
-        cfg.policy.collect.collector, collector_env, [policy.collect_mode] + rule_collect_policy, tb_logger, exp_name=cfg.exp_name
+        cfg.policy.collect.collector, collector_env, [policy_cpu.collect_mode] + rule_collect_policy, tb_logger, exp_name=cfg.exp_name
     )
     rule_evaluator = BattleInteractionSerialEvaluator(
-        cfg.policy.eval.evaluator, rule_evaluator_env, [policy.eval_mode] + rule_eval_policy, tb_logger, exp_name=cfg.exp_name, instance_name='rule_evaluator'
+        cfg.policy.eval.evaluator, rule_evaluator_env, [policy_cpu.eval_mode] + rule_eval_policy, tb_logger, exp_name=cfg.exp_name, instance_name='rule_evaluator'
     )
 
     replay_buffer = NaiveReplayBuffer(cfg.policy.other.replay_buffer, tb_logger, exp_name=cfg.exp_name)
