@@ -43,8 +43,10 @@ class DQNBot():
 
 def launch_a_game():
     server = Server(dict(
+        map_width=300,
+        map_height=300,
         save_video=True,
-        match_time=30,
+        match_time=20,
         save_path='./videos/'
         )) # server的默认配置就是标准的比赛setting
     render = EnvRender(server.map_width, server.map_height) # 引入渲染模块
@@ -56,7 +58,7 @@ def launch_a_game():
     for player in server.player_manager.get_players():
         bot_agents.append(BotAgent(player.name)) # 初始化每个bot，注意要给每个bot提供队伍名称和玩家名称 
 
-    DQNAgent = DQNBot('xyx')
+    # DQNAgent = DQNBot('xyx')
     
 
     for i in range(100000):
@@ -65,11 +67,12 @@ def launch_a_game():
         # 动作是一个字典，包含每个玩家的动作
 
         actions_bot = {bot_agent.name: bot_agent.step(obs[1][bot_agent.name]) for bot_agent in bot_agents}
-        actions = DQNAgent.get_actions(obs)
+        actions = actions_bot
+        # actions = DQNAgent.get_actions(obs)
 
-        for id in actions.keys():
-            if id > '3':
-                actions[id] = actions_bot[id]
+        # for id in actions.keys():
+        #     if id > '3':
+        #         actions[id] = actions_bot[id]
 
         finish_flag = server.step(actions=actions) # 环境执行动作
         print('{} {:.4f} leaderboard={}'.format(i, server.last_time, obs[0]['leaderboard']))
