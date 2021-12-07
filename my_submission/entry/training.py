@@ -71,11 +71,11 @@ ppo_params = {
     'entropy_coeff': 0.001,
     #'entropy_coeff_schedule': [[0, FLAGS.entropy_coeff],[2000000, 0.0]],
     'use_gae': True,
-    'kl_coeff': 0.0,
+    'kl_coeff': 0.1,
     "lambda" : FLAGS.lam,
     "gamma" : FLAGS.gamma,
     "clip_param" : 0.3,
-    "sgd_minibatch_size" : 256,
+    "sgd_minibatch_size" : 128,
     "train_batch_size" : 256,
     "num_sgd_iter" : 4,
     # "rollout_fragment_length" : 200,
@@ -155,6 +155,7 @@ def setup(env, hparams, algorithm, train_batch_size, num_cpus, num_gpus,
                 "num_cpus_for_driver": cpus_for_driver,
                 "num_gpus_per_worker": num_gpus_per_worker,   # Can be a fraction
                 "num_cpus_per_worker": num_cpus_per_worker,   # Can be a fraction
+                "framework" : "torch",
                 "multiagent": {
                     "policies": policy_graphs,
                     "policy_mapping_fn": tune.function(policy_mapping_fn),
