@@ -6,74 +6,131 @@
 # model is a single convolutional layer with a kernel of size 3, stride of size 1, and 6 output
 # channels. This is connected to two fully connected layers of size 32 each
 
-import tensorflow as tf
-from ray.rllib.models.tf.misc import normc_initializer
-from ray.rllib.models.tf.recurrent_tf_modelv2 import RecurrentTFModelV2, TFModelV2
-from ray.rllib.utils.annotations import override
-from ray.rllib.models.modelv2 import ModelV2
-from ray.rllib.policy.rnn_sequencing import add_time_dimension
+import imp
+import math
 import numpy as np
 
+from ray.rllib.models.modelv2 import ModelV2
+from ray.rllib.models.preprocessors import get_preprocessor
+from ray.rllib.models.torch.recurrent_net import RecurrentNetwork as TorchRNN
+from ray.rllib.utils.annotations import override
+from ray.rllib.utils.framework import try_import_torch
+
+torch, nn = try_import_torch()
+import torch.nn.functional as F
 
 
-class GoBigger(RecurrentTFModelV2):
-    """Custom model for policy gradient algorithms."""
+class ScaleDotProductionAttention(nn.Module):
+    def __init__(self):
+        super().__init__()
 
-    def __init__(self, obs_space, action_space, num_outputs, model_config,
-                 name):
-        super(ConvToFCNet, self).__init__(obs_space, action_space, num_outputs, model_config, name)
-        hiddens_size = 32 
-        self.cell_size = self.model_config['lstm_cell_size'] 
-        visual_size = np.prod(obs_space.shape)
+    def forward(self, q, k, v):
+        d_model = q.shape[-1]
+        entity_embedding = F.softmax((torch.matmul(q, k.permute(0,2,1)))/math.sqrt(d_model), dim=-1)
+        entity_embedding = torch.matmul(entity_embedding, v)
+        entity_embedding = torch.mean(entity_embedding, dim=1, keepdim=True)
+        return entity_embedding
 
-        # Input layers for lstm
-        state_in_h = tf.keras.layers.Input(shape=(self.cell_size, ), name="h")
-        state_in_c = tf.keras.layers.Input(shape=(self.cell_size, ), name="c")
-        seq_in = tf.keras.layers.Input(shape=(), name="seq_in", dtype=tf.int32)
+class TorchRNNModel(TorchRNN, nn.Module):
+    def __init__(self,
+                obs_space,
+                action_space,
+                num_outputs,
+                model_config,
+                name,
+                fc_size=64,
+                lstm_state_size=128):
+        nn.Module.__init__(self)
+        super().__init__(obs_space, action_space, num_outputs, model_config,
+                        name)
 
-        # Input layers for obs
-        inputs = tf.keras.layers.Input(shape=(None, visual_size), name="visual_inputs")
-        input_visual = inputs
 
-        input_visual = tf.reshape(input_visual, [-1, obs_space.shape[0], obs_space.shape[1], obs_space.shape[2]])
-        conv1 = tf.keras.layers.Conv2D(6, [3,3], 1, activation=tf.nn.relu)(input_visual)
-        conv1 = tf.keras.layers.Flatten()(conv1) # tf.reshape(conv1, [-1, np.prod(conv1.shape.as_list()[1:])])
-        dense1 = tf.keras.layers.Dense(hiddens_size, name="fc1", activation=tf.nn.relu, kernel_initializer=normc_initializer(1.0))(conv1)
-        dense2 = tf.keras.layers.Dense(hiddens_size, name="fc2", activation=tf.nn.relu, kernel_initializer=normc_initializer(1.0))(dense1)
-        dense2 = tf.reshape(dense2, [-1, tf.shape(inputs)[1], dense2.shape.as_list()[-1]])
+        # Holds the current "base" output (before logits layer).
+        self._features = None
 
-        import pdb; pdb.set_trace()
-        lstm_out, state_h, state_c = tf.keras.layers.LSTM(self.cell_size, return_sequences=True, return_state=True, name="lstm")(
-                inputs=dense2, initial_state=[state_in_h, state_in_c])
-        
-        values = tf.keras.layers.Dense(1, name="values", activation=None, kernel_initializer=normc_initializer(0.01))(lstm_out)
-        logits = tf.keras.layers.Dense(num_outputs, name="logits", activation=tf.keras.activations.linear, kernel_initializer=normc_initializer(0.01))(lstm_out)
+        custom_model_config = model_config["custom_model_config"]
 
-        # Create the RNN model
-        self.rnn_model = tf.keras.Model(
-            inputs=[inputs, seq_in, state_in_h, state_in_c],
-            outputs=[logits, values, state_h, state_c])
-        self.register_variables(self.rnn_model.variables)
-        # self.rnn_model.summary()
+        self.obs_size = custom_model_config["obs_shape"]
+        self.action_shape = num_outputs
+        self.entity_shape = custom_model_config["entity_shape"]
+        self.obs_embedding_size, self.entity_embedding_size = custom_model_config["obs_embedding_size"], custom_model_config["entity_embedding_size"]
+        self.all_embedding_size = custom_model_config["all_embedding_size"]
+        self.rnn_size = lstm_state_size
 
-    @override(RecurrentTFModelV2)
-    def forward_rnn(self, inputs, state, seq_lens):
-        model_out, self._value_out, h, c = self.rnn_model([inputs, seq_lens] +
-                                                          state)
-        return model_out, [h, c]
+        # bs * obs
+        self.obs_encoder = nn.Linear(self.obs_size, self.obs_embedding_size)
 
-    @override(ModelV2)
-    def value_function(self):
-        return tf.reshape(self._value_out, [-1])
+        # bs * N * entity_shape
+        self.entity_encoder_q = nn.Linear(self.entity_shape, self.entity_embedding_size)
+        self.entity_encoder_k = nn.Linear(self.entity_shape, self.entity_embedding_size) 
+        self.entity_encoder_v = nn.Linear(self.entity_shape, self.entity_embedding_size)
+
+        self.attention = ScaleDotProductionAttention()
+        self.all_encoder = nn.Linear(self.obs_embedding_size + self.entity_embedding_size, self.all_embedding_size)
+        self.rnn = nn.LSTM(input_size=self.all_embedding_size, hidden_size=self.rnn_size, batch_first=True)
+        self.logits = nn.Linear(self.rnn_size, self.action_shape)
+        self.values = nn.Linear(self.rnn_size, 1)
 
     @override(ModelV2)
     def get_initial_state(self):
-        return [
-                np.zeros(self.cell_size, np.float32),
-                np.zeros(self.cell_size, np.float32)
+        # TODO: (sven): Get rid of `get_initial_state` once Trajectory
+        #  View API is supported across all of RLlib.
+        # Place hidden states on same device as model.
+        h = [
+            self.obs_encoder.weight.new(1, self.rnn_size).zero_().squeeze(0),
+            self.obs_encoder.weight.new(1, self.rnn_size).zero_().squeeze(0)
         ]
+        return h
 
-    def metrics(self):
-        return {}
+    @override(ModelV2)
+    def value_function(self):
+        assert self._features is not None, "must call forward() first"
+        return torch.reshape(self.values(self._features), [-1])
+
+    @override(TorchRNN)
+    def forward_rnn(self, inputs, state, seq_lens):
+        """Feeds `inputs` (B x T x ..) through the Gru Unit.
+
+        Returns the resulting outputs as a sequence (B x T x ...).
+        Values are stored in self._cur_value in simple (B) shape (where B
+        contains both the B and T dims!).
+
+        Returns:
+            NN Outputs (B x T x ...) as sequence.
+            The state batches as a List of two items (c- and h-states).
+        """
+        obs = inputs[:, :, :50]
+        bs = inputs.shape[0]
+        seq = inputs.shape[1]
+        entities = inputs[:,:,50:].reshape(-1, seq, self.entity_shape)
+
+        obs_embedding = F.relu(self.obs_encoder(obs))
+
+        q, k, v = [self.entity_encoder_q(entities), self.entity_encoder_k(entities), self.entity_encoder_v(entities)]
+        q = q.reshape(bs*seq, -1, self.entity_embedding_size)
+        k = k.reshape(bs*seq, -1, self.entity_embedding_size)
+        v = v.reshape(bs*seq, -1, self.entity_embedding_size)
+        entity_embedding = self.attention(q, k, v)
+        entity_embedding = entity_embedding.reshape(bs, seq, self.entity_embedding_size)
+        # import pdb; pdb.set_trace()
+        all_embedding = torch.cat((obs_embedding, entity_embedding), dim=-1)
+        core = F.relu(self.all_encoder(all_embedding))
+
+        # packed_input = pack_padded_sequence(output, self.sequence_length)
+        self._features, [h,c] = self.rnn(core, [torch.unsqueeze(state[0], 0), torch.unsqueeze(state[1], 0)])
+
+        logits = self.logits(self._features)
+        return logits, [torch.squeeze(h, 0), torch.squeeze(c, 0)]
+
+        # return logits, hct
+
+
+
+        # x = nn.functional.relu(self.fc1(inputs))
+        # self._features, [h, c] = self.lstm(
+        #     x, [torch.unsqueeze(state[0], 0),
+        #         torch.unsqueeze(state[1], 0)])
+        # action_out = self.action_branch(self._features)
+        return action_out, [torch.squeeze(h, 0), torch.squeeze(c, 0)]
 
 

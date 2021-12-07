@@ -13,6 +13,7 @@ from ray.tune.result import DEFAULT_RESULTS_DIR
 
 from envs.ma_env import MAGoBigger
 from config.no_spatial import env_config
+from model.gb import TorchRNNModel
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -68,7 +69,7 @@ gc_default_params = {
     'lr_final': 1e-4,
 }
 ppo_params = {
-    'entropy_coeff': 0.001,
+    'entropy_coeff': 0.01,
     #'entropy_coeff_schedule': [[0, FLAGS.entropy_coeff],[2000000, 0.0]],
     'use_gae': True,
     'kl_coeff': 0.1,
@@ -76,7 +77,7 @@ ppo_params = {
     "gamma" : FLAGS.gamma,
     "clip_param" : 0.3,
     "sgd_minibatch_size" : 128,
-    "train_batch_size" : 256,
+    "train_batch_size" : 128,
     "num_sgd_iter" : 4,
     # "rollout_fragment_length" : 200,
     # "sgd_minibatch_size" : 128*5,
@@ -117,9 +118,9 @@ def setup(env, hparams, algorithm, train_batch_size, num_cpus, num_gpus,
         return 'policy-0'
 
 
-    # # register the custom model
-    # model_name = "conv_to_fc_net"
-    # ModelCatalog.register_custom_model(model_name, ConvToFCNet)
+    # register the custom model
+    model_name = "go_bigger"
+    ModelCatalog.register_custom_model(model_name, TorchRNNModel)
 
     agent_cls = get_agent_class(algorithm)
     config = agent_cls._default_config.copy()
@@ -160,7 +161,18 @@ def setup(env, hparams, algorithm, train_batch_size, num_cpus, num_gpus,
                     "policies": policy_graphs,
                     "policy_mapping_fn": tune.function(policy_mapping_fn),
                 },
-                # "model": {"custom_model": "conv_to_fc_net", "lstm_cell_size": 128 },
+                "model": {
+                    "custom_model": "go_bigger", 
+                    "lstm_cell_size": 128 ,
+                    "max_seq_len" : 10,
+                    "custom_model_config": {
+                        "obs_shape" : 50,
+                        "entity_shape" : 31,
+                        "obs_embedding_size" : 128,
+                        "entity_embedding_size" : 128,
+                        "all_embedding_size" : 128,
+                    }
+                },
     })
 
     config.update(ppo_params)
@@ -177,7 +189,7 @@ def on_episode_end(info):
         for i in range(4):
             episode.custom_metrics[f"reward{i}"] = info["0"]["final_reward"][i]
             episode.custom_metrics[f"size{i}"] = info["0"]["size"][str(i)]
-            episode.custom_metrics[f"rank{i}"] = info["0"]["rank"][i]
+            episode.custom_metrics["rank{}".format(info["0"]["rank"][i])] = i+1
 
 def main(unused_argv):
     ray.init(num_cpus=FLAGS.num_cpus)
