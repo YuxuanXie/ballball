@@ -149,7 +149,7 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
         replay_buffer.push(new_data[0], cur_collector_envstep=collector.envstep)
         replay_buffer.push(new_data[1], cur_collector_envstep=collector.envstep)
 
-        tb_logger.flush()
+        learner.tb_logger.flush()
 
         for i in range(cfg.policy.learn.update_per_collect):
             train_data = replay_buffer.sample(learner.policy.get_attribute('batch_size'), learner.train_iter)

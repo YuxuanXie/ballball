@@ -3,13 +3,13 @@ from easydict import EasyDict
 gobigger_dqn_config = dict(
     exp_name='results/vsbot',
     env=dict(
-        collector_env_num=32,
+        collector_env_num=1,
         evaluator_env_num=8,
         n_evaluator_episode=8,
         stop_value=1e10,
         player_num_per_team=3,
         team_num=4,
-        match_time=60,
+        match_time=20,
         map_height=300,
         map_width=300,
         # team_num=4,
