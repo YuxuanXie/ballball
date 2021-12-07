@@ -12,7 +12,7 @@ import tensorflow.compat.v1 as tf
 from ray.tune.result import DEFAULT_RESULTS_DIR
 
 from envs.ma_env import MAGoBigger
-from config.no_spatial import main_config
+from config.no_spatial import env_config
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -47,7 +47,7 @@ tf.app.flags.DEFINE_boolean(
     'use_gpus_for_workers', False,
     'Set to true to run workers on GPUs rather than CPUs')
 tf.app.flags.DEFINE_boolean(
-    'use_gpu_for_driver', False,
+    'use_gpu_for_driver', True,
     'Set to true to run driver on GPU rather than CPU.')
 # num_workers_per_device increases and the sample time also increases. 2 is better here 
 tf.app.flags.DEFINE_float(
@@ -96,9 +96,9 @@ def setup(env, hparams, algorithm, train_batch_size, num_cpus, num_gpus,
 
 
     def env_creator(_):
-        return MAGoBigger(main_config.env)
+        return MAGoBigger(env_config)
 
-    single_env = MAGoBigger(main_config.env)
+    single_env = MAGoBigger(env_config)
     env_name = env + "_env"
     register_env(env_name, env_creator)
 
