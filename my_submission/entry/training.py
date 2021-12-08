@@ -33,10 +33,10 @@ tf.app.flags.DEFINE_integer(
     'train_batch_size', 8,
     'Size of the total dataset over which one epoch is computed.')
 tf.app.flags.DEFINE_integer(
-    'checkpoint_frequency', 20,
+    'checkpoint_frequency', 200,
     'Number of steps before a checkpoint is saved.')
 tf.app.flags.DEFINE_integer(
-    'training_iterations', 2000,
+    'training_iterations', 200000,
     'Total number of steps to train for')
 tf.app.flags.DEFINE_integer(
     'num_cpus', 32,
@@ -69,17 +69,17 @@ gc_default_params = {
     'lr_final': 1e-4,
 }
 ppo_params = {
-    'entropy_coeff': 0.01,
+    'entropy_coeff': 0.001,
     #'entropy_coeff_schedule': [[0, FLAGS.entropy_coeff],[2000000, 0.0]],
     'use_gae': True,
-    'kl_coeff': 0.1,
+    'kl_coeff': 0.0,
     "lambda" : FLAGS.lam,
     "gamma" : FLAGS.gamma,
     "clip_param" : 0.3,
-    "sgd_minibatch_size" : 128,
-    "train_batch_size" : 128,
-    "num_sgd_iter" : 4,
-    # "rollout_fragment_length" : 200,
+    "sgd_minibatch_size" : 256,
+    "train_batch_size" : 1024,
+    "num_sgd_iter" : 8,
+    "rollout_fragment_length" : 50,
     # "sgd_minibatch_size" : 128*5,
     # "train_batch_size" : 5000,
     # "num_sgd_iter" : 8,
