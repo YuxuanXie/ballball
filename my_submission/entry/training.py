@@ -27,9 +27,6 @@ tf.app.flags.DEFINE_string(
     'algorithm', 'PPO',
     'Name of the rllib algorithm to use.')
 tf.app.flags.DEFINE_integer(
-    'num_agents', 5,
-    'Number of agent policies')
-tf.app.flags.DEFINE_integer(
     'train_batch_size', 8,
     'Size of the total dataset over which one epoch is computed.')
 tf.app.flags.DEFINE_integer(
@@ -65,8 +62,8 @@ tf.app.flags.DEFINE_float('lam', 0.99, 'lambda')
 
 
 gc_default_params = {
-    'lr_init': 1e-4,
-    'lr_final': 1e-4,
+    'lr_init': 5e-4,
+    'lr_final': 5e-4,
 }
 ppo_params = {
     'entropy_coeff': 0.001,
@@ -77,9 +74,10 @@ ppo_params = {
     "gamma" : FLAGS.gamma,
     "clip_param" : 0.3,
     "sgd_minibatch_size" : 256,
-    "train_batch_size" : 1024,
-    "num_sgd_iter" : 8,
+    "train_batch_size" : 512,
+    "num_sgd_iter" : 4,
     "rollout_fragment_length" : 50,
+    "grad_clip" : 10,
     # "sgd_minibatch_size" : 128*5,
     # "train_batch_size" : 5000,
     # "num_sgd_iter" : 8,
@@ -91,9 +89,9 @@ ppo_params = {
 
 
 
-def setup(env, hparams, algorithm, train_batch_size, num_cpus, num_gpus,
-          num_agents, use_gpus_for_workers=False, use_gpu_for_driver=False,
-          num_workers_per_device=1):
+def setup(env, hparams, algorithm, train_batch_size, num_cpus, num_gpus, 
+            use_gpus_for_workers=False, use_gpu_for_driver=False,
+            num_workers_per_device=1):
 
 
     def env_creator(_):
@@ -197,7 +195,7 @@ def main(unused_argv):
     alg_run, env_name, config = setup(FLAGS.env, hparams, FLAGS.algorithm,
                                       FLAGS.train_batch_size,
                                       FLAGS.num_cpus,
-                                      FLAGS.num_gpus, FLAGS.num_agents,
+                                      FLAGS.num_gpus,
                                       FLAGS.use_gpus_for_workers,
                                       FLAGS.use_gpu_for_driver,
                                       FLAGS.num_workers_per_device)

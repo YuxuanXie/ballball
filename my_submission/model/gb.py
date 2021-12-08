@@ -122,15 +122,6 @@ class TorchRNNModel(TorchRNN, nn.Module):
         logits = self.logits(self._features)
         return logits, [torch.squeeze(h, 0), torch.squeeze(c, 0)]
 
-        # return logits, hct
 
-
-
-        # x = nn.functional.relu(self.fc1(inputs))
-        # self._features, [h, c] = self.lstm(
-        #     x, [torch.unsqueeze(state[0], 0),
-        #         torch.unsqueeze(state[1], 0)])
-        # action_out = self.action_branch(self._features)
-        return action_out, [torch.squeeze(h, 0), torch.squeeze(c, 0)]
 
 
