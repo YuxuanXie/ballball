@@ -1,5 +1,6 @@
 # The following dependencies are ready on our test server, so please do not add the same dependencies in requirements.txt
-
+ray==1.9.0
+dm-tree==0.1.6
 # absl-py==0.10.0
 # alabaster==0.7.12
 # apeye==1.1.0

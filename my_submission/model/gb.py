@@ -118,7 +118,6 @@ class TorchRNNModel(TorchRNN, nn.Module):
 
         # packed_input = pack_padded_sequence(output, self.sequence_length)
         self._features, [h,c] = self.rnn(core, [torch.unsqueeze(state[0], 0), torch.unsqueeze(state[1], 0)])
-
         logits = self.logits(self._features)
         return logits, [torch.squeeze(h, 0), torch.squeeze(c, 0)]
 

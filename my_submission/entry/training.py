@@ -56,9 +56,9 @@ tf.app.flags.DEFINE_float(
     'Number of workers to place on a single device (CPU or GPU)')
 
 tf.app.flags.DEFINE_float('entropy_coeff', 0.00, 'The entropy')
-# tf.app.flags.DEFINE_float('strong_proportion', 0.5, 'The proportion of strong agents')
 tf.app.flags.DEFINE_float('gamma', 0.99, 'gamma')
 tf.app.flags.DEFINE_float('lam', 0.99, 'lambda')
+tf.app.flags.DEFINE_string( 'restore', '', 'load model path')
 
 
 gc_default_params = {
@@ -208,15 +208,17 @@ def main(unused_argv):
     print('Commencing experiment', exp_name)
 
     run_experiments({
-        exp_name: {
-            "run": alg_run,
-            "env": env_name,
-            "stop": {
-                "training_iteration": FLAGS.training_iterations
-            },
-            'checkpoint_freq': FLAGS.checkpoint_frequency,
-            "config": config,
-        }},
+            exp_name: {
+                "run": alg_run,
+                "env": env_name,
+                "stop": {
+                    "training_iteration": FLAGS.training_iterations
+                },
+                'checkpoint_freq': FLAGS.checkpoint_frequency,
+                "config": config,
+                "restore": "/Users/yuxuan/git/gobigger/my_submission/entry/results/checkpoint_000800/checkpoint-800",
+            }
+        },
     )
 
 

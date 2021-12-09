@@ -10,9 +10,10 @@ from ding.config import compile_config
 from ding.policy import DQNPolicy
 from .envs import GoBiggerEnv
 from .model import GoBiggerStructedNetwork
-from .config.no_spatial import main_config
+from .config.no_spatial import env_config
 from gobigger.agents import BotAgent
 
+from .entry.visuallizer import PPOBot
 
 class BaseSubmission:
 
@@ -32,19 +33,15 @@ class MySubmission(BaseSubmission):
 
     def __init__(self, team_name, player_names):
         super(MySubmission, self).__init__(team_name, player_names)
-        self.cfg = copy.deepcopy(main_config)
-        self.cfg = compile_config(
-            self.cfg,
-            policy=DQNPolicy,
-            save_cfg=False,
-        )
+        self.cfg = env_config
         print(self.cfg)
         self.root_path = os.path.abspath(os.path.dirname(__file__))
         # self.model = GoBiggerStructedNetwork(**self.cfg.policy.model)
         # self.model.load_state_dict(torch.load(os.path.join(self.root_path, 'supplements', 'ckpt_best.pth.tar'), map_location='cpu')['model'])
         # self.policy = DQNPolicy(self.cfg.policy, model=self.model).eval_mode
-        self.env = GoBiggerEnv(self.cfg.env)
-        self.botAgents = [BotAgent(i) for i in self.player_names]
+        self.env = GoBiggerEnv(self.cfg)
+        # self.botAgents = [BotAgent(i) for i in self.player_names]
+        self.ppo_agent = PPOBot(os.path.join(self.root_path, 'supplements', 'checkpoint'), player_names)
 
     def get_actions(self, obs):
         # obs_transform = self.env._obs_transform(obs)[0]
@@ -52,7 +49,10 @@ class MySubmission(BaseSubmission):
         # raw_actions = self.policy.forward(obs_transform)[0]['action']
         # raw_actions = raw_actions.tolist()
         # actions = {n: GoBiggerEnv._to_raw_action(a) for n, a in zip(obs[1].keys(), raw_actions)}
-        # import pdb; pdb.set_trace()
-        actions = {bot_agent.name: bot_agent.step(obs[1][bot_agent.name]) for bot_agent in self.botAgents}
+        # ------------------------------------------------------------------------------------------------
+        # actions = {bot_agent.name: bot_agent.step(obs[1][bot_agent.name]) for bot_agent in self.botAgents}
+        # ------------------------------------------------------------------------------------------------
+
+        actions=self.ppo_agent.get_actions(obs)
 
         return actions
