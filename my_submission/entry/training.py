@@ -57,24 +57,24 @@ tf.app.flags.DEFINE_float(
 
 tf.app.flags.DEFINE_float('entropy_coeff', 0.00, 'The entropy')
 tf.app.flags.DEFINE_float('gamma', 0.99, 'gamma')
-tf.app.flags.DEFINE_float('lam', 0.99, 'lambda')
+tf.app.flags.DEFINE_float('lam', 0.95, 'lambda')
 tf.app.flags.DEFINE_string( 'restore', '', 'load model path')
 
 
 gc_default_params = {
-    'lr_init': 5e-4,
-    'lr_final': 5e-4,
+    'lr_init': 1e-4,
+    'lr_final': 1e-5,
 }
 ppo_params = {
-    'entropy_coeff': 0.001,
+    'entropy_coeff': 0.002,
     #'entropy_coeff_schedule': [[0, FLAGS.entropy_coeff],[2000000, 0.0]],
     'use_gae': True,
     'kl_coeff': 0.0,
     "lambda" : FLAGS.lam,
     "gamma" : FLAGS.gamma,
     "clip_param" : 0.3,
-    "sgd_minibatch_size" : 256,
-    "train_batch_size" : 512,
+    "sgd_minibatch_size" : 512,
+    "train_batch_size" : 1024,
     "num_sgd_iter" : 4,
     "rollout_fragment_length" : 50,
     "grad_clip" : 10,
@@ -216,7 +216,7 @@ def main(unused_argv):
                 },
                 'checkpoint_freq': FLAGS.checkpoint_frequency,
                 "config": config,
-                "restore": "/Users/yuxuan/git/gobigger/my_submission/entry/results/checkpoint_000800/checkpoint-800",
+                # "restore": "/Users/yuxuan/git/gobigger/my_submission/entry/results/checkpoint_000800/checkpoint-800",
             }
         },
     )

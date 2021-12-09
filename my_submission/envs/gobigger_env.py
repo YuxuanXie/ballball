@@ -241,7 +241,8 @@ class GoBiggerEnv(BaseEnv):
                 
                 team_reward.append(team_reward_item)
 
-            if global_state['last_time'] >= global_state['total_time']:
+            # if global_state['last_time'] >= global_state['total_time']:
+            if abs(global_state['last_time'] % 15 - 0) < 0.01 or global_state['last_time'] >= global_state['total_time']:
                 rank = np.array(list(global_state['leaderboard'].values()))
                 rank = np.argsort(rank)[::-1]
                 final_reward = [5, -1, -2, -5]
