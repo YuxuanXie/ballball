@@ -5,6 +5,8 @@ sys.path.append('..')
 from ray import tune
 from ray.rllib.agents.registry import get_agent_class
 from ray.rllib.agents.ppo.ppo_torch_policy import PPOTorchPolicy as PPOPolicyGraph
+from ray.rllib.agents.impala.vtrace_torch_policy import VTraceTorchPolicy
+
 from ray.rllib.models import ModelCatalog
 from ray.tune import run_experiments
 from ray.tune.registry import register_env
@@ -66,15 +68,15 @@ gc_default_params = {
     'lr_final': 1e-5,
 }
 ppo_params = {
-    'entropy_coeff': 0.002,
+    'entropy_coeff': 0.000,
     #'entropy_coeff_schedule': [[0, FLAGS.entropy_coeff],[2000000, 0.0]],
     'use_gae': True,
     'kl_coeff': 0.0,
     "lambda" : FLAGS.lam,
     "gamma" : FLAGS.gamma,
     "clip_param" : 0.3,
-    "sgd_minibatch_size" : 512,
-    "train_batch_size" : 1024,
+    "sgd_minibatch_size" : 256,
+    "train_batch_size" : 512,
     "num_sgd_iter" : 4,
     "rollout_fragment_length" : 50,
     "grad_clip" : 10,
@@ -85,6 +87,11 @@ ppo_params = {
     # "evaluation_num_episodes" : 50,
     # "evaluation_config" : {"explore": False},
     # "batch_mode" : "complete_episodes",
+}
+
+
+impala_params = {
+
 }
 
 
@@ -106,7 +113,11 @@ def setup(env, hparams, algorithm, train_batch_size, num_cpus, num_gpus,
 
     # Each policy can have a different configuration (including custom model)
     def gen_policy():
-        return (PPOPolicyGraph, obs_space, act_space, {})
+        if algorithm == 'PPO':
+            return (PPOPolicyGraph, obs_space, act_space, {})
+        else:
+            return (VTraceTorchPolicy, obs_space, act_space, {})
+            
 
     # Setup PPO with an ensemble of `num_policies` different policy graphs
     policy_graphs = {}
@@ -172,11 +183,15 @@ def setup(env, hparams, algorithm, train_batch_size, num_cpus, num_gpus,
                     }
                 },
     })
+    if algorithm == 'PPO':
+        config.update(ppo_params)
+    else:
+        config.update(impala_params)
 
-    config.update(ppo_params)
     config.update({"callbacks": {
         "on_episode_end": tune.function(on_episode_end),
     }})
+
     return algorithm, env_name, config
 
 

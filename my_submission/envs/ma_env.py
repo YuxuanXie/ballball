@@ -3,7 +3,7 @@ from typing import List
 # sys.path.append(pathlib.Path(__file__).parent.resolve())
 from envs.gobigger_env import GoBiggerEnv
 from ray.rllib.env import MultiAgentEnv
-from ray.rllib.utils.typing import AgentID, EnvType, MultiAgentDict
+from ray.rllib.utils.typing import MultiAgentDict
 from easydict import EasyDict
 import numpy as np
 from gobigger.agents import BotAgent
@@ -61,9 +61,12 @@ class MAGoBigger(MultiAgentEnv):
         self.action_type_shape = 16
         
         # team 0
-        self.trained_agents = [str(i) for i in range(self.player_num_per_team)]
-        self.team1 = RulePolicy(1, self.player_num_per_team)
-        self.team2_3 = RandomPolicy(16, 2*self.player_num_per_team)
+        self.team0 = [str(i) for i in range(self.player_num_per_team)]
+        # self.team2_3 = RandomPolicy(16, 2*self.player_num_per_team)
+        self.team1 = [str(3 + i) for i in range(self.player_num_per_team)]
+        self.team2 = [str(6 + i) for i in range(self.player_num_per_team)]
+
+        self.team3 = RulePolicy(3, self.player_num_per_team)
 
 
 
@@ -83,21 +86,28 @@ class MAGoBigger(MultiAgentEnv):
             actions[k] = np.array([v]) 
 
         gb_actions = []
-        for i in range(self.player_num_per_team):
+        for i in range(3 * self.player_num_per_team):
             gb_actions.append(actions[str(i)])
 
-        team1_obs = self.original_obs[1]
-        actions1 = self.team1.forward(team1_obs)
-        actions2_3 = self.team2_3.forward()
-        gb_actions += [np.array(actions1)]
-        gb_actions += actions2_3
+        team3_obs = self.original_obs[3]
+        actions3 = self.team3.forward(team3_obs)
+        # actions2_3 = self.team2_3.forward()
+        gb_actions += [np.array(actions3)]
+        # gb_actions += actions2_3
 
         feedback = self._env.step([np.array(i) for i in gb_actions])
         self.original_obs = feedback.obs
         observations = self.extract_ma_obs(feedback.obs)
-        rewards = {i: feedback.reward[0][0] for i in self.trained_agents}
-        dones = {i: feedback.done for i in self.trained_agents} 
+
+        rewards = {i: feedback.reward[0][0] for i in self.team0}
+        rewards = {i: feedback.reward[1][0] for i in self.team1}
+        rewards = {i: feedback.reward[2][0] for i in self.team2}
+
+        dones = {i: feedback.done for i in self.team0} 
+        dones.update({i : feedback.done for i in self.team1})
+        dones.update({i : feedback.done for i in self.team2})
         dones['__all__'] = feedback.done 
+
         info = {}
         info['0'] = {}
         if dones["__all__"]:
@@ -118,13 +128,16 @@ class MAGoBigger(MultiAgentEnv):
             'unit_obs' : Box(low=-1000, high=1000, shape=(200,31))
         })
 
-    def extract_ma_obs(self, obs):
+    def extract_ma_obs(self, obs, teams=[0,1,2]):
         ma_obs = dict()
-        # Only extract team 0
-        for i in range(self.player_num_per_team):
-            ma_obs[str(i)] = {}
-            ma_obs[str(i)]['scalar_obs'] = obs[0][i]['scalar_obs']
-            ma_obs[str(i)]['unit_obs'] = obs[0][i]['unit_obs']
+        for team in teams:
+            # Only extract team 0
+            for i in range(self.player_num_per_team):
+
+                ma_obs[str(i + team * self.player_num_per_team)] = {}
+                ma_obs[str(i + team * self.player_num_per_team)]['scalar_obs'] = obs[team][i]['scalar_obs']
+                ma_obs[str(i + team * self.player_num_per_team)]['unit_obs'] = obs[team][i]['unit_obs']
+
         return ma_obs
     
 
