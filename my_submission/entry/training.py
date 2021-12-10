@@ -170,18 +170,18 @@ def setup(env, hparams, algorithm, train_batch_size, num_cpus, num_gpus,
                     "policies": policy_graphs,
                     "policy_mapping_fn": tune.function(policy_mapping_fn),
                 },
-                "model": {
-                    "custom_model": "go_bigger", 
-                    "lstm_cell_size": 128 ,
-                    "max_seq_len" : 10,
-                    "custom_model_config": {
-                        "obs_shape" : 50,
-                        "entity_shape" : 31,
-                        "obs_embedding_size" : 128,
-                        "entity_embedding_size" : 128,
-                        "all_embedding_size" : 128,
-                    }
-                },
+                # "model": {
+                #     "custom_model": "go_bigger", 
+                #     "lstm_cell_size": 128 ,
+                #     "max_seq_len" : 10,
+                #     "custom_model_config": {
+                #         "obs_shape" : 50,
+                #         "entity_shape" : 31,
+                #         "obs_embedding_size" : 128,
+                #         "entity_embedding_size" : 128,
+                #         "all_embedding_size" : 128,
+                #     }
+                # },
     })
     if algorithm == 'PPO':
         config.update(ppo_params)
@@ -232,7 +232,7 @@ def main(unused_argv):
                 'checkpoint_freq': FLAGS.checkpoint_frequency,
                 "config": config,
                 # "restore": "/Users/yuxuan/git/gobigger/my_submission/entry/results/checkpoint_000800/checkpoint-800",
-                "restore" : "/home/xyx/ray_results/gb_PPO/PPO_gb_env_e4cb8_00000_0_2021-12-08_14-55-57/checkpoint_000800/checkpoint-800"
+                # "restore" : "/home/xyx/ray_results/gb_PPO/PPO_gb_env_e4cb8_00000_0_2021-12-08_14-55-57/checkpoint_000800/checkpoint-800"
             }
         },
     )

@@ -81,18 +81,19 @@ class MAGoBigger(MultiAgentEnv):
     
     # actions : dict(agent_id -> a)
     def step(self, actions):
-        
+
         for k, v in actions.items():
-            actions[k] = np.array([v]) 
+            actions[k] = [float(v['x']), float(v['y']), v['type']]
 
         gb_actions = []
-        for i in range(3 * self.player_num_per_team):
-            gb_actions.append(actions[str(i)])
+
+        for i in range(3):
+            gb_actions.append([actions[str(i*3 + 0)], actions[str(i*3 + 1)], actions[str(i*3 + 2)]])
 
         team3_obs = self.original_obs[3]
         actions3 = self.team3.forward(team3_obs)
         # actions2_3 = self.team2_3.forward()
-        gb_actions += [np.array(actions3)]
+        gb_actions += [actions3]
         # gb_actions += actions2_3
 
         feedback = self._env.step([np.array(i) for i in gb_actions])
@@ -119,7 +120,12 @@ class MAGoBigger(MultiAgentEnv):
 
     @property
     def action_space(self):
-        return Discrete(self.action_type_shape)
+        # return Discrete(self.action_type_shape)
+        return Dict({
+            "x" : Box(low=-1, high=1, shape=(1,)),
+            "y" : Box(low=-1, high=1, shape=(1,)),
+            "type" : Discrete(4)
+        })
 
     @property
     def observation_space(self):
