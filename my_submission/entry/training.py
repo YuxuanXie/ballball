@@ -68,7 +68,7 @@ gc_default_params = {
     'lr_final': 1e-5,
 }
 ppo_params = {
-    'entropy_coeff': 0.000,
+    'entropy_coeff': 0.001,
     #'entropy_coeff_schedule': [[0, FLAGS.entropy_coeff],[2000000, 0.0]],
     'use_gae': True,
     'kl_coeff': 0.0,
@@ -232,6 +232,7 @@ def main(unused_argv):
                 'checkpoint_freq': FLAGS.checkpoint_frequency,
                 "config": config,
                 # "restore": "/Users/yuxuan/git/gobigger/my_submission/entry/results/checkpoint_000800/checkpoint-800",
+                "restore" : "/home/xyx/ray_results/gb_PPO/PPO_gb_env_e4cb8_00000_0_2021-12-08_14-55-57/checkpoint_000800/checkpoint-800"
             }
         },
     )

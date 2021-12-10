@@ -237,7 +237,7 @@ class GoBiggerEnv(BaseEnv):
                 team_rank_reward = np.clip(np.array([cur_size - max_size]) * 0.001, -1, 0) + 0.5
 
                 team_reward_item = 0.5 * diff_incremental_reawrd + team_rank_reward
-                team_reward_item = 0.01 * team_reward_item
+                team_reward_item = 0.5 * team_reward_item
                 
                 team_reward.append(team_reward_item)
 
