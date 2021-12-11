@@ -120,7 +120,7 @@ class Worker():
 
     def collect(self):
         exp = {}
-        for episode in range(100):
+        for episode in range(300):
             experience = bot_data_one_episode([], [], [])
             self.server.reset() # 初始化游戏引擎
             for i in range(10000):
@@ -141,7 +141,7 @@ class Worker():
                 finish_flag = self.server.step(actions=actions) # 环境执行动作
                 # print('{} {:.4f} leaderboard={}'.format(i, self.server.last_time, obs[0]['leaderboard']))
                 if finish_flag:
-                    print('Game Over')
+                    print('{episode}th Game Over')
                     break
 
             trained_obs = torch.from_numpy(np.concatenate(experience.obs, axis=1))
@@ -149,8 +149,10 @@ class Worker():
             trained_rewards = torch.from_numpy(np.stack(experience.reward, axis=1))
 
             exp.update({ episode : [trained_obs, trained_actions, trained_rewards]})
-
-        pickle.dump(exp, open("exp.pkl", 'ab+'), protocol=pickle.HIGHEST_PROTOCOL)
+            if episode % 1 == 0:
+                print(f"{episode} is dumped!")
+                pickle.dump(exp, open("exp.pkl", 'ab+'), protocol=pickle.HIGHEST_PROTOCOL)
+                exp = {}
 
 
     def extract_ma_obs(self, obs, teams=[0,1,2,3]):
@@ -164,7 +166,7 @@ class Worker():
 
     def extract_ma_actions(self, actions):
         action = []
-        discret_action = [ (round(v[0]), round(v[1]), round(v[2])) for k, v in actions.items() ]
+        discret_action = [ (round(v[0]) if v[0] else 1, round(v[1]) if v[1] else 0, round(v[2])) for k, v in actions.items() ]
         for each in discret_action:
             x,y,action_type = each
             if x == 0 and y == 1:

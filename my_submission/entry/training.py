@@ -59,27 +59,27 @@ tf.app.flags.DEFINE_float(
 
 tf.app.flags.DEFINE_float('entropy_coeff', 0.00, 'The entropy')
 tf.app.flags.DEFINE_float('gamma', 0.99, 'gamma')
-tf.app.flags.DEFINE_float('lam', 0.95, 'lambda')
+tf.app.flags.DEFINE_float('lam', 0.9, 'lambda')
 tf.app.flags.DEFINE_string( 'restore', '', 'load model path')
 
 
 gc_default_params = {
-    'lr_init': 1e-4,
+    'lr_init': 1e-5,
     'lr_final': 1e-5,
 }
 ppo_params = {
-    'entropy_coeff': 0.0005,
+    'entropy_coeff': 0.001,
     #'entropy_coeff_schedule': [[0, FLAGS.entropy_coeff],[2000000, 0.0]],
     'use_gae': True,
     'kl_coeff': 0.0,
     "lambda" : FLAGS.lam,
     "gamma" : FLAGS.gamma,
     "clip_param" : 0.1,
-    "sgd_minibatch_size" : 512,
+    "sgd_minibatch_size" : 1024,
     "train_batch_size" : 1024,
     "num_sgd_iter" : 2,
     "rollout_fragment_length" : 50,
-    "grad_clip" : 10,
+    "grad_clip" : 30,
     # "sgd_minibatch_size" : 128*5,
     # "train_batch_size" : 5000,
     # "num_sgd_iter" : 8,
