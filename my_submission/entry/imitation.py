@@ -58,7 +58,7 @@ class PPOBot():
         self.model = TorchRNNModel(None, None, self.num_actions, model_config, "PPOBot")
         # self.state = self.initial_state()
         # self.optmizer = RMSprop(self.model.trainable_variables(), 1e-5)
-        self.optmizer = Adam(self.model.trainable_variables(), 1e-5)
+        self.optmizer = Adam(self.model.trainable_variables(), 2e-5)
         self.max_seq_len = 10 
         self.tblogger = SummaryWriter('./log/{}/'.format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
         self.learn_iter = 0
@@ -146,7 +146,7 @@ class PPOBot():
             probs = probs.reshape(-1, self.num_actions)
             action_sl = torch.max(action_sl.reshape(-1, self.num_actions), 1)[1]
             action_pre = torch.max(probs.reshape(-1, self.num_actions), 1)[1]
-            positive_rate =  (action_sl == action_pre).mean()
+            positive_rate = (action_sl == action_pre).sum().float() / len(action_sl)
             self.tblogger.add_scalar("data/test_right_rate", positive_rate, self.learn_iter)
 
 
