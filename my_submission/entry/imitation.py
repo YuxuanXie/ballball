@@ -14,7 +14,7 @@ from config.no_spatial import env_config
 import glob
 import pickle
 import numpy as np
-from torch.optim import Adam
+from torch.optim import Adam, RMSprop
 from collections import namedtuple
 from torch.nn import functional as F
 from functools import partial
@@ -57,10 +57,11 @@ class PPOBot():
         self.num_actions = 16
         self.model = TorchRNNModel(None, None, self.num_actions, model_config, "PPOBot")
         # self.state = self.initial_state()
-        self.optmizer = Adam(self.model.trainable_variables(), 1e-5)
+        self.optmizer = RMSprop(self.model.trainable_variables(), 1e-5)
         self.max_seq_len = 10 
         self.tblogger = SummaryWriter('./log/{}/'.format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
         self.learn_iter = 0
+        self.policy_criterion = torch.nn.CrossEntropyLoss()
 
 
     def initial_state(self, batch_size):
@@ -75,14 +76,15 @@ class PPOBot():
 
         obs = torch.cat((obs, torch.zeros(bs, 1, entity_shape)), dim=1)
         
-        obs = obs.to(torch.device("cuda:0"))
-        action = action.to(torch.device("cuda:0"))
-        reward = reward.to(torch.device("cuda:0"))
 
         if state == None:
             state = self.initial_state(bs)
 
-        state = [each.to(torch.device("cuda:0")) for each in state]
+        if cuda:
+            state = [each.to(torch.device("cuda:0")) for each in state]
+            obs = obs.to(torch.device("cuda:0"))
+            action = action.to(torch.device("cuda:0"))
+            reward = reward.to(torch.device("cuda:0"))
 
         for sl in range(int(total_seq_len / self.max_seq_len)):
             state = [each.detach() for each in state]
@@ -92,7 +94,8 @@ class PPOBot():
 
             logits, state = self.model.forward_rnn(obs_sl, state, self.max_seq_len)
 
-            probs = F.softmax(logits, dim=-1)[:, :-1]
+            # probs = F.softmax(logits, dim=-1)[:, :-1]
+            probs = logits[:, :-1]
             all_values = self.model.value_function().reshape(bs, self.max_seq_len+1)
             value_current = all_values[:, :-1]
             value_next = all_values[:, 1:]
@@ -100,7 +103,7 @@ class PPOBot():
             probs = probs.reshape(-1, self.num_actions)
             action_sl = torch.max(action_sl.reshape(-1, self.num_actions), 1)[1]
 
-            policy_loss = F.cross_entropy(probs, action_sl)
+            policy_loss = self.policy_criterion(probs, action_sl)
             vf_loss = F.mse_loss(reward_sl + 0.99*value_next.detach(), value_current)
 
             total_loss = policy_loss + vf_loss
@@ -255,6 +258,8 @@ def remote_worker(conn, worker):
     print(f" {worker.start_id} begin collect! ")
     worker.collect()
 
+cuda = False
+
 if __name__ == '__main__':
     collect_data = False
     
@@ -271,7 +276,6 @@ if __name__ == '__main__':
             p.join()
 
     else:
-        cuda = True
         learner = PPOBot()
         if cuda:
             learner.mdoel = learner.model.to(torch.device("cuda:0"))
