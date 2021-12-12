@@ -1,3 +1,4 @@
+from pdb import set_trace
 from gobigger.agents import BotAgent
 from gobigger.server import Server
 from gobigger.render import EnvRender
@@ -10,14 +11,33 @@ from envs import GoBiggerEnv
 from model.gb import TorchRNNModel
 from config.no_spatial import env_config
 
+import glob
 import pickle
 import numpy as np
 from torch.optim import Adam
 from collections import namedtuple
 from torch.nn import functional as F
+from functools import partial
+import multiprocessing
+from multiprocessing import Pipe, Process
+from tensorboardX import SummaryWriter
+import datetime
 
 bot_data_one_episode = namedtuple("bot_data_one_episode", ["obs", "action", "reward"])
 
+
+class CloudpickleWrapper():
+    """
+    Uses cloudpickle to serialize contents (otherwise multiprocessing tries to use pickle)
+    """
+    def __init__(self, x):
+        self.x = x
+    def __getstate__(self):
+        import cloudpickle
+        return cloudpickle.dumps(self.x)
+    def __setstate__(self, ob):
+        import pickle
+        self.x = pickle.loads(ob)
 
 model_config = {
     "custom_model": "go_bigger", 
@@ -38,27 +58,14 @@ class PPOBot():
         # self.state = self.initial_state()
         self.optmizer = Adam(self.model.trainable_variables(), 1e-5)
         self.max_seq_len = 50
+        self.tblogger = SummaryWriter('./log/{}/'.format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
+        self.learn_iter = 0
 
 
     def initial_state(self, batch_size):
         hc = [self.model.get_initial_state() for _ in range(batch_size)]
         state = [torch.cat([each[0].unsqueeze(dim=0) for each in hc], dim=0),  torch.cat([each[1].unsqueeze(dim=0) for each in hc], dim=0)]
         return state
-
-    # input -> {id -> action}
-    # def get_actions(self, obs):
-    #     bs_transform = self.env._obs_transform(obs)[0]
-
-    #     inputs = []
-    #     for i in range(len(self.player_names)):
-    #         inputs.append(np.concatenate((bs_transform[0]["scalar_obs"].reshape(1, -1), bs_transform[0]["unit_obs"].reshape(1, -1)), axis=-1))
-    #     inputs = torch.from_numpy(np.stack(inputs, axis=0))
-        
-    #     logits, self.state = self.model.forward_rnn(inputs, self.state, [1, 1, 1])
-    #     logits = torch.squeeze(logits, dim=1)
-    #     actions = torch.argmax(logits, dim=1, keepdim=False).tolist()
-    #     a = {f'{i}' : self.env._to_raw_action(action) for i, action in zip(self.player_names, actions)}
-    #     return a
 
     def learn(self, obs, action, reward, state = None):
         bs, total_seq_len, entity_shape = *obs.shape,
@@ -88,16 +95,23 @@ class PPOBot():
 
             total_loss = policy_loss + vf_loss
 
+            import pdb; pdb.set_trace()
+
             self.optmizer.zero_grad()
             total_loss.backward()
             self.optmizer.step()
+
+            self.tblogger.add_scalar("data/policy_loss", policy_loss)
+            self.tblogger.add_scalar("data/vf_loss", vf_loss)
+            self.tblogger.add_scalar("data/total_loss", total_loss)
+
             print(f"{sl} back propogation succeed {total_loss}")
 
 
 
 
 class Worker():
-    def __init__(self) -> None:
+    def __init__(self, start_id, num_episode) -> None:
         self.server = Server(dict(
             map_width=1000,
             map_height=1000,
@@ -116,14 +130,18 @@ class Worker():
         self._team_num = 4
         for player in self.server.player_manager.get_players():
             self.bot_agents.append(BotAgent(player.name)) # 初始化每个bot，注意要给每个bot提供队伍名称和玩家名称 
+        
+        self.worker_id = start_id
+        self.num_episode = num_episode
+        self.start_id = start_id * self.num_episode
 
 
     def collect(self):
         exp = {}
-        for episode in range(300):
+        for episode in range(self.start_id, self.start_id+self.num_episode):
             experience = bot_data_one_episode([], [], [])
             self.server.reset() # 初始化游戏引擎
-            for i in range(10000):
+            for i in range(1):
                 # 获取到返回的环境状态信息
                 obs = self.server.obs()
                 # 动作是一个字典，包含每个玩家的动作
@@ -151,7 +169,7 @@ class Worker():
             exp.update({ episode : [trained_obs, trained_actions, trained_rewards]})
             if episode % 1 == 0:
                 print(f"{episode} is dumped!")
-                pickle.dump(exp, open("exp.pkl", 'ab+'), protocol=pickle.HIGHEST_PROTOCOL)
+                pickle.dump(exp, open(f"data/exp-{self.worker_id}.pkl", 'ab+'), protocol=pickle.HIGHEST_PROTOCOL)
                 exp = {}
 
 
@@ -216,15 +234,42 @@ class Worker():
         return team_reward
 
 
+def env_func(env, **kwargs):
+    return env(**kwargs)
 
-
-
-
-
+def remote_worker(conn, worker):
+    worker = worker.x()
+    print(f" {worker.start_id} begin collect! ")
+    worker.collect()
 
 if __name__ == '__main__':
-    worker = Worker()
-    worker.collect()
-    # learner = PPOBot()
-    # data = pickle.load(open('exp.pkl', 'rb'))
-    # learner.learn(*data[1])
+    collect_data = False
+    
+    if collect_data:
+        multiprocessing.set_start_method('spawn')
+        parent_conns, worker_conns = zip(*[Pipe() for _ in range(10)])
+        ps = [Process(target=remote_worker, args=(worker_conn, CloudpickleWrapper(partial(env_func, env=Worker, start_id=i, num_episode=10)))) for i, worker_conn in enumerate(worker_conns)]
+        
+        for p in ps:
+            p.daemon = True
+            p.start()
+        
+        for p in ps:
+            p.join()
+
+    else:
+        learner = PPOBot()
+        # files = glob.glob("/home/xyx/git/ballball/my_submission/entry/data/*.pkl")
+        files = glob.glob("./data/*.pkl")
+        for f in files:
+            f_handler = open(f, 'rb')
+            while True:
+
+                try:
+                    data = pickle.load(f_handler)
+                except EOFError:
+                    break
+
+                for k, v in data.items():
+                    set_trace()
+                    learner.learn(*v)
