@@ -58,7 +58,7 @@ class PPOBot():
         self.model = TorchRNNModel(None, None, self.num_actions, model_config, "PPOBot")
         # self.state = self.initial_state()
         self.optmizer = Adam(self.model.trainable_variables(), 1e-5)
-        self.max_seq_len = 50
+        self.max_seq_len = 10 
         self.tblogger = SummaryWriter('./log/{}/'.format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
         self.learn_iter = 0
 
@@ -74,9 +74,15 @@ class PPOBot():
         reward = reward.float()
 
         obs = torch.cat((obs, torch.zeros(bs, 1, entity_shape)), dim=1)
+        
+        obs = obs.to(torch.device("cuda:0"))
+        action = action.to(torch.device("cuda:0"))
+        reward = reward.to(torch.device("cuda:0"))
 
         if state == None:
             state = self.initial_state(bs)
+
+        state = [each.to(torch.device("cuda:0")) for each in state]
 
         for sl in range(int(total_seq_len / self.max_seq_len)):
             state = [each.detach() for each in state]
@@ -141,10 +147,13 @@ class Worker():
 
     def collect(self):
         exp = {}
+        batch_obs = []
+        batch_act = []
+        batch_rew = []
         for episode in range(self.start_id, self.start_id+self.num_episode):
             experience = bot_data_one_episode([], [], [])
             self.server.reset() # 初始化游戏引擎
-            for i in range(1):
+            for i in range(10000):
                 # 获取到返回的环境状态信息
                 obs = self.server.obs()
                 # 动作是一个字典，包含每个玩家的动作
@@ -168,12 +177,13 @@ class Worker():
             trained_obs = torch.from_numpy(np.concatenate(experience.obs, axis=1))
             trained_actions = torch.from_numpy(np.stack(experience.action, axis=1))
             trained_rewards = torch.from_numpy(np.stack(experience.reward, axis=1))
+            batch_obs.append(trained_obs)
+            batch_act.append(trained_actions)
+            batch_rew.append(trained_rewards)
 
-            exp.update({ episode : [trained_obs, trained_actions, trained_rewards]})
-            if episode % 1 == 0:
-                print(f"{episode} is dumped!")
-                pickle.dump(exp, open(f"data/exp-{self.worker_id}.pkl", 'ab+'), protocol=pickle.HIGHEST_PROTOCOL)
-                exp = {}
+        batch_dat = [ torch.cat(each, 0) for each in [batch_obs, batch_act, batch_rew] ]
+        print(f"{episode} is dumped!")
+        pickle.dump(batch_dat, open(f"data/bexp-{self.worker_id}.pkl", 'ab+'), protocol=4)
 
 
     def extract_ma_obs(self, obs, teams=[0,1,2,3]):
@@ -250,8 +260,8 @@ if __name__ == '__main__':
     
     if collect_data:
         multiprocessing.set_start_method('spawn')
-        parent_conns, worker_conns = zip(*[Pipe() for _ in range(10)])
-        ps = [Process(target=remote_worker, args=(worker_conn, CloudpickleWrapper(partial(env_func, env=Worker, start_id=i, num_episode=10)))) for i, worker_conn in enumerate(worker_conns)]
+        parent_conns, worker_conns = zip(*[Pipe() for _ in range(4)])
+        ps = [Process(target=remote_worker, args=(worker_conn, CloudpickleWrapper(partial(env_func, env=Worker, start_id=i+2, num_episode=4)))) for i, worker_conn in enumerate(worker_conns)]
         
         for p in ps:
             p.daemon = True
@@ -261,18 +271,15 @@ if __name__ == '__main__':
             p.join()
 
     else:
+        cuda = True
         learner = PPOBot()
+        if cuda:
+            learner.mdoel = learner.model.to(torch.device("cuda:0"))
+
         # files = glob.glob("/home/xyx/git/ballball/my_submission/entry/data/*.pkl")
         files = glob.glob("./data/*.pkl")
         for f in files:
             f_handler = open(f, 'rb')
-            while True:
-
-                try:
-                    data = pickle.load(f_handler)
-                except EOFError:
-                    break
-
-                for k, v in data.items():
-                    for i in range(500):
-                        learner.learn(*v)
+            data = pickle.load(f_handler)
+            for i in range(50000):
+                learner.learn(*data)
