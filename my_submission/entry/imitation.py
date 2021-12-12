@@ -54,7 +54,8 @@ model_config = {
 
 class PPOBot():
     def __init__(self) -> None:
-        self.model = TorchRNNModel(None, None, 16, model_config, "PPOBot")
+        self.num_actions = 16
+        self.model = TorchRNNModel(None, None, self.num_actions, model_config, "PPOBot")
         # self.state = self.initial_state()
         self.optmizer = Adam(self.model.trainable_variables(), 1e-5)
         self.max_seq_len = 50
@@ -89,22 +90,24 @@ class PPOBot():
             all_values = self.model.value_function().reshape(bs, self.max_seq_len+1)
             value_current = all_values[:, :-1]
             value_next = all_values[:, 1:]
+            
+            probs = probs.reshape(-1, self.num_actions)
+            action_sl = torch.max(action_sl.reshape(-1, self.num_actions), 1)[1]
 
             policy_loss = F.cross_entropy(probs, action_sl)
             vf_loss = F.mse_loss(reward_sl + 0.99*value_next.detach(), value_current)
 
             total_loss = policy_loss + vf_loss
 
-            import pdb; pdb.set_trace()
-
             self.optmizer.zero_grad()
             total_loss.backward()
             self.optmizer.step()
 
-            self.tblogger.add_scalar("data/policy_loss", policy_loss)
-            self.tblogger.add_scalar("data/vf_loss", vf_loss)
-            self.tblogger.add_scalar("data/total_loss", total_loss)
+            self.tblogger.add_scalar("data/policy_loss", policy_loss, self.learn_iter)
+            self.tblogger.add_scalar("data/vf_loss", vf_loss, self.learn_iter)
+            self.tblogger.add_scalar("data/total_loss", total_loss, self.learn_iter)
 
+            self.learn_iter += 1
             print(f"{sl} back propogation succeed {total_loss}")
 
 
@@ -271,5 +274,5 @@ if __name__ == '__main__':
                     break
 
                 for k, v in data.items():
-                    set_trace()
-                    learner.learn(*v)
+                    for i in range(500):
+                        learner.learn(*v)
