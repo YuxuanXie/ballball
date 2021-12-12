@@ -57,7 +57,8 @@ class PPOBot():
         self.num_actions = 16
         self.model = TorchRNNModel(None, None, self.num_actions, model_config, "PPOBot")
         # self.state = self.initial_state()
-        self.optmizer = RMSprop(self.model.trainable_variables(), 1e-5)
+        # self.optmizer = RMSprop(self.model.trainable_variables(), 1e-5)
+        self.optmizer = Adam(self.model.trainable_variables(), 1e-5)
         self.max_seq_len = 10 
         self.tblogger = SummaryWriter('./log/{}/'.format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
         self.learn_iter = 0
@@ -258,7 +259,7 @@ def remote_worker(conn, worker):
     print(f" {worker.start_id} begin collect! ")
     worker.collect()
 
-cuda = False
+cuda = True
 
 if __name__ == '__main__':
     collect_data = False
