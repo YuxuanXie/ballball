@@ -3,9 +3,8 @@ from gobigger.agents import BotAgent
 from gobigger.server import Server
 from gobigger.render import EnvRender
 import sys
-
-from tensorflow.python.framework.ops import to_raw_op
 sys.path.append('..')
+
 import torch
 from envs import GoBiggerEnv
 from model.gb import TorchRNNModel
@@ -22,6 +21,7 @@ import multiprocessing
 from multiprocessing import Pipe, Process
 from tensorboardX import SummaryWriter
 import datetime
+import random
 
 bot_data_one_episode = namedtuple("bot_data_one_episode", ["obs", "action", "reward"])
 
@@ -119,6 +119,36 @@ class PPOBot():
 
             self.learn_iter += 1
             print(f"{sl} back propogation succeed {total_loss}")
+    
+    def test(self, obs, action, reward, state = None):
+
+        bs, total_seq_len, entity_shape = *obs.shape,
+        action = action.float()
+        
+        if state == None:
+            state = self.initial_state(bs)
+
+        if cuda:
+            state = [each.to(torch.device("cuda:0")) for each in state]
+            obs = obs.to(torch.device("cuda:0"))
+            action = action.to(torch.device("cuda:0"))
+            reward = reward.to(torch.device("cuda:0"))
+
+        for sl in range(int(total_seq_len / self.max_seq_len)):
+            state = [each.detach() for each in state]
+            obs_sl = obs[:, sl*self.max_seq_len : (sl+1)*self.max_seq_len]
+            reward_sl = reward[:, sl*self.max_seq_len : (sl+1)*self.max_seq_len].squeeze(-1)
+            action_sl = action[:, sl*self.max_seq_len:(sl+1)*self.max_seq_len]
+
+            logits, state = self.model.forward_rnn(obs_sl, state, self.max_seq_len)
+
+            probs = F.softmax(logits, dim=-1)
+            probs = probs.reshape(-1, self.num_actions)
+            action_sl = torch.max(action_sl.reshape(-1, self.num_actions), 1)[1]
+            action_pre = torch.max(probs.reshape(-1, self.num_actions), 1)[1]
+            positive_rate =  (action_sl == action_pre).mean()
+            self.tblogger.add_scalar("data/test_right_rate", positive_rate, self.learn_iter)
+
 
 
 
@@ -283,8 +313,15 @@ if __name__ == '__main__':
 
         # files = glob.glob("/home/xyx/git/ballball/my_submission/entry/data/*.pkl")
         files = glob.glob("./data/*.pkl")
-        for f in files:
+        for i in range(100):
+            f = random.sample(files, 1)[0]
             f_handler = open(f, 'rb')
             data = pickle.load(f_handler)
-            for i in range(50000):
+            
+            for i in range(1000):
                 learner.learn(*data)
+                if i % 100 == 0:
+                    learner.test(*data)
+            
+
+
