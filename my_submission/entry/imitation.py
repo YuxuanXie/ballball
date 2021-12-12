@@ -313,15 +313,16 @@ if __name__ == '__main__':
 
         # files = glob.glob("/home/xyx/git/ballball/my_submission/entry/data/*.pkl")
         files = glob.glob("./data/*.pkl")
-        for i in range(100):
+        for i in range(1000):
             f = random.sample(files, 1)[0]
             f_handler = open(f, 'rb')
             data = pickle.load(f_handler)
             
-            for i in range(1000):
-                learner.learn(*data)
-                if i % 100 == 0:
+            for i in range(50):
+                if i % 5 == 0:
                     learner.test(*data)
+                learner.learn(*data)
+    
             
 
 
