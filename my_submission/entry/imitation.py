@@ -58,8 +58,8 @@ class PPOBot():
         self.model = TorchRNNModel(None, None, self.num_actions, model_config, "PPOBot")
         # self.state = self.initial_state()
         # self.optmizer = RMSprop(self.model.trainable_variables(), 1e-5)
-        self.optmizer = Adam(self.model.trainable_variables(), 1e-5)
-        self.max_seq_len = 10 
+        self.optmizer = Adam(self.model.trainable_variables(), 5e-6)
+        self.max_seq_len = 15 
         self.tblogger = SummaryWriter('./log/{}/'.format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
         self.learn_iter = 0
         self.policy_criterion = torch.nn.CrossEntropyLoss()
@@ -111,6 +111,7 @@ class PPOBot():
 
             self.optmizer.zero_grad()
             total_loss.backward()
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 5)
             self.optmizer.step()
 
             self.tblogger.add_scalar("data/policy_loss", policy_loss, self.learn_iter)
@@ -146,7 +147,7 @@ class PPOBot():
             probs = probs.reshape(-1, self.num_actions)
             action_sl = torch.max(action_sl.reshape(-1, self.num_actions), 1)[1]
             action_pre = torch.max(probs.reshape(-1, self.num_actions), 1)[1]
-            positive_rate =  (action_sl == action_pre).mean()
+            positive_rate = (action_sl == action_pre).sum().float() / len(action_sl)
             self.tblogger.add_scalar("data/test_right_rate", positive_rate, self.learn_iter)
 
 
@@ -318,10 +319,11 @@ if __name__ == '__main__':
             f_handler = open(f, 'rb')
             data = pickle.load(f_handler)
             
-            for i in range(50):
-                if i % 5 == 0:
+            for j in range(50):
+                if j % 5 == 0:
                     learner.test(*data)
                 learner.learn(*data)
+            torch.save(learner.model.state_dict(), f"model/{i}.pkl")
     
             
 
