@@ -1,3 +1,4 @@
+import random
 from gobigger.agents import BotAgent
 from gobigger.server import Server
 from gobigger.render import EnvRender
@@ -15,6 +16,7 @@ from config.no_spatial import env_config
 import pickle
 import numpy as np
 from ray.rllib.utils.torch_utils import convert_to_torch_tensor
+from torch.distributions import Categorical
 
 
 model_config = {
@@ -59,18 +61,24 @@ class PPOBot():
         
         logits, self.state = self.model.forward_rnn(inputs, self.state, [1, 1, 1])
         logits = torch.squeeze(logits, dim=1)
-        actions = torch.argmax(logits, dim=1, keepdim=False).tolist()
+        # actions = torch.argmax(logits, dim=1, keepdim=False).tolist()
+        actions = Categorical(logits=logits).sample().tolist()
+        
         a = {f'{i}' : self.env._to_raw_action(action) for i, action in zip(self.player_names, actions)}
         return a
 
 
+def extract_ma_actions(actions):
+    random_direction = random.sample([(1, 0), (-1, 0), (0, 1), (0, -1)], 1)[0]
+    discret_action = {k : (round(v[0]) , round(v[1]), round(v[2])) if v[0] else (random_direction[0] , random_direction[1], round(v[2])) for k, v in actions.items()}
+    return discret_action
 
 def launch_a_game():
     server = Server(dict(
         map_width=1000,
         map_height=1000,
         save_video=True,
-        match_time=60*10,
+        match_time=60,
         save_path='./videos/'
         )) # server的默认配置就是标准的比赛setting
     render = EnvRender(server.map_width, server.map_height) # 引入渲染模块
@@ -91,10 +99,11 @@ def launch_a_game():
         # 动作是一个字典，包含每个玩家的动作
 
         actions_bot = {bot_agent.name: bot_agent.step(obs[1][bot_agent.name]) for bot_agent in bot_agents}
-        actions = actions_bot
-
+        actions = extract_ma_actions(actions_bot)
+        
         actions_ppo = ppo_agent.get_actions(obs)
         actions.update(actions_ppo)
+        print(actions)
         # actions = DQNAgent.get_actions(obs)
 
         # for id in actions.keys():
