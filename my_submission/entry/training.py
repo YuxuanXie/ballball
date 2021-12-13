@@ -51,7 +51,7 @@ tf.app.flags.DEFINE_boolean(
     'Set to true to run driver on GPU rather than CPU.')
 # num_workers_per_device increases and the sample time also increases. 2 is better here 
 tf.app.flags.DEFINE_float(
-    'num_workers_per_device', 1,
+    'num_workers_per_device', 2,
     'Number of workers to place on a single device (CPU or GPU)')
 tf.app.flags.DEFINE_float(
     'num_cpus_for_driver', 1,
@@ -59,26 +59,26 @@ tf.app.flags.DEFINE_float(
 
 tf.app.flags.DEFINE_float('entropy_coeff', 0.00, 'The entropy')
 tf.app.flags.DEFINE_float('gamma', 0.99, 'gamma')
-tf.app.flags.DEFINE_float('lam', 0.9, 'lambda')
+tf.app.flags.DEFINE_float('lam', 0.95, 'lambda')
 tf.app.flags.DEFINE_string( 'restore', '', 'load model path')
 
 
 gc_default_params = {
-    'lr_init': 1e-5,
+    'lr_init': 3e-5,
     'lr_final': 1e-5,
 }
 ppo_params = {
-    'entropy_coeff': 0.001,
+    'entropy_coeff': 0.005,
     #'entropy_coeff_schedule': [[0, FLAGS.entropy_coeff],[2000000, 0.0]],
     'use_gae': True,
     'kl_coeff': 0.0,
     "lambda" : FLAGS.lam,
     "gamma" : FLAGS.gamma,
-    "clip_param" : 0.1,
+    "clip_param" : 0.2,
     "sgd_minibatch_size" : 1024,
-    "train_batch_size" : 1024,
-    "num_sgd_iter" : 2,
-    "rollout_fragment_length" : 50,
+    "train_batch_size" : 2048,
+    "num_sgd_iter" : 4,
+    "rollout_fragment_length" : 64,
     "grad_clip" : 30,
     # "sgd_minibatch_size" : 128*5,
     # "train_batch_size" : 5000,
@@ -173,7 +173,7 @@ def setup(env, hparams, algorithm, train_batch_size, num_cpus, num_gpus,
                 "model": {
                     "custom_model": "go_bigger", 
                     "lstm_cell_size": 128 ,
-                    "max_seq_len" : 10,
+                    "max_seq_len" : 8,
                     "custom_model_config": {
                         "obs_shape" : 50,
                         "entity_shape" : 31,

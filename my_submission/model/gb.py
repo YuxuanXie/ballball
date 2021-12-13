@@ -68,13 +68,18 @@ class TorchRNNModel(TorchRNN, nn.Module):
         self.attention = ScaleDotProductionAttention()
         self.all_encoder = nn.Linear(self.obs_embedding_size + self.entity_embedding_size, self.all_embedding_size)
         self.rnn = nn.LSTM(input_size=self.all_embedding_size, hidden_size=self.rnn_size, batch_first=True)
-        self.logits = nn.Linear(self.rnn_size, self.action_shape)
-        self.values = nn.Linear(self.rnn_size, 1)
-        # self.values = nn.Sequential(
-        #     nn.Linear(self.rnn_size, 32),
-        #     nn.ReLU(),
-        #     nn.Linear(32, 1),
-        # )
+        # self.logits = nn.Linear(self.rnn_size, self.action_shape)
+        # self.values = nn.Linear(self.rnn_size, 1)
+        self.logits= nn.Sequential(
+            nn.Linear(self.rnn_size, 32),
+            nn.ReLU(),
+            nn.Linear(32, self.action_shape),
+        )
+        self.values = nn.Sequential(
+            nn.Linear(self.rnn_size, 32),
+            nn.ReLU(),
+            nn.Linear(32, 1),
+        )
         
 
     @override(ModelV2)
