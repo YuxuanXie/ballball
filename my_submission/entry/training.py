@@ -232,7 +232,6 @@ def main(unused_argv):
                 'checkpoint_freq': FLAGS.checkpoint_frequency,
                 "config": config,
                 # "restore": "/Users/yuxuan/git/gobigger/my_submission/entry/results/checkpoint_000800/checkpoint-800",
-                "restore" : "/home/xyx/ray_results/gb_PPO/PPO_gb_env_e4cb8_00000_0_2021-12-08_14-55-57/checkpoint_000800/checkpoint-800"
             }
         },
     )

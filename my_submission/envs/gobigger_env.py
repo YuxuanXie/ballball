@@ -11,6 +11,7 @@ from ding.torch_utils import to_tensor, to_ndarray, to_list
 from ding.utils import ENV_REGISTRY
 from gobigger.server import Server
 from gobigger.render import EnvRender
+from gobigger.agents import BotAgent
 
 
 def one_hot_np(value: int, num_cls: int):
@@ -53,6 +54,8 @@ class GoBiggerEnv(BaseEnv):
                 with_spatial=self._spatial,
                 with_speed=self._speed,
                 with_all_vision=self._all_vision)
+        self.bot = BotAgent('-1')
+
 
     def _launch_game(self) -> Server:
         server = Server(self._cfg)
@@ -223,6 +226,7 @@ class GoBiggerEnv(BaseEnv):
         # 1. difference incremental reward -> cur_size - last_size -> 0.01 * (-40, 40) clip (-1, 1)
         # 2. team rank reward -> cur_size - max_size -> * 0.01 clip(-1, 1)
         # 3. team final win/loss reward -> 5 for 1st; 2 for 2nd; -2 for 3rd; -5 for 4th.
+        # 4. target position diff incremental reward 
 
         if self._last_team_size is None:
             team_reward = [np.array([0.]) for __ in range(self._team_num)]
@@ -232,12 +236,15 @@ class GoBiggerEnv(BaseEnv):
                 team_name = str(i)
                 last_size = self._last_team_size[team_name]
                 cur_size = global_state['leaderboard'][team_name]
+                # 1. difference incremental reward
                 diff_incremental_reawrd = np.clip(np.array([cur_size - last_size]) * 0.01, -1, 1)
                 max_size = max(list(global_state['leaderboard'].values()))
+
+                # 2. team rank reward
                 team_rank_reward = np.clip(np.array([cur_size - max_size]) * 0.001, -1, 0) + 0.5
 
                 team_reward_item = 0.5 * diff_incremental_reawrd + team_rank_reward
-                
+
                 team_reward.append(team_reward_item)
 
             # if global_state['last_time'] >= global_state['total_time']:
@@ -247,7 +254,7 @@ class GoBiggerEnv(BaseEnv):
                 final_reward = [5, 2, -2, -5]
                 for i in range(len(rank)):
                     team_reward[rank[i]] += final_reward[i]
-            
+
         self._last_team_size = global_state['leaderboard']
         return team_reward
 

@@ -34,12 +34,12 @@ model_config = {
 
 class PPOBot():
     def __init__(self, checkpoint_path, player_names) -> None:
-        # self.checkpoint = pickle.load(open(checkpoint_path, 'rb'))
-        # self.worker_info = pickle.loads(self.checkpoint['worker'])
-        # self.model = TorchRNNModel(self.worker_info['policy_specs']['policy-0'].observation_space, self.worker_info['policy_specs']['policy-0'].action_space, 16, model_config, "PPOBot")
-        # self.model.load_state_dict(convert_to_torch_tensor(self.worker_info['state']['policy-0']['weights']))
-        self.model = TorchRNNModel(None, None, 16, model_config, "PPOBot")
-        self.model.load_state_dict(torch.load("1.pkl", map_location='cpu'))
+        self.checkpoint = pickle.load(open(checkpoint_path, 'rb'))
+        self.worker_info = pickle.loads(self.checkpoint['worker'])
+        self.model = TorchRNNModel(self.worker_info['policy_specs']['policy-0'].observation_space, self.worker_info['policy_specs']['policy-0'].action_space, 16, model_config, "PPOBot")
+        self.model.load_state_dict(convert_to_torch_tensor(self.worker_info['state']['policy-0']['weights']))
+        # self.model = TorchRNNModel(None, None, 16, model_config, "PPOBot")
+        # self.model.load_state_dict(torch.load("1.pkl", map_location='cpu'))
         self.env = GoBiggerEnv(env_config)
         self.player_names = player_names
         self.state = self.initial_state()
@@ -91,7 +91,7 @@ def launch_a_game():
         bot_agents.append(BotAgent(player.name)) # 初始化每个bot，注意要给每个bot提供队伍名称和玩家名称 
 
     # ppo_agent = PPOBot("/Users/yuxuan/git/goBigger/my_submission/entry/results/checkpoint_002000/checkpoint-2000")
-    ppo_agent = PPOBot("/Users/yuxuan/git/goBigger/my_submission/entry/results/checkpoint_000800/checkpoint-800", ['0', '1', '2'])
+    ppo_agent = PPOBot("/Users/yuxuan/git/goBigger/my_submission/entry/results/checkpoint-9400", ['0', '1', '2'])
 
     for i in range(100000):
         # 获取到返回的环境状态信息
@@ -103,7 +103,7 @@ def launch_a_game():
         
         actions_ppo = ppo_agent.get_actions(obs)
         actions.update(actions_ppo)
-        print(actions)
+        # print(actions)
         # actions = DQNAgent.get_actions(obs)
 
         # for id in actions.keys():

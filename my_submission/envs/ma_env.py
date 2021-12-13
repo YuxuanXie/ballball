@@ -8,6 +8,8 @@ from easydict import EasyDict
 import numpy as np
 from gobigger.agents import BotAgent
 from gym.spaces import Discrete, Dict, Box 
+from pygame.math import Vector2
+import copy
 
 
 
@@ -68,6 +70,10 @@ class MAGoBigger(MultiAgentEnv):
 
         self.team3 = RulePolicy(3, self.player_num_per_team)
 
+        self.positive_target_pos = { str(i) : None for i in range(self.team_num * self.player_num_per_team)}
+        self.negative_target_pos = { str(i) : None for i in range(self.team_num * self.player_num_per_team)}
+        self.prev_pos = { str(i) : None for i in range(self.team_num * self.player_num_per_team)}
+
 
 
     def reset(self) -> MultiAgentDict:
@@ -100,8 +106,15 @@ class MAGoBigger(MultiAgentEnv):
         observations = self.extract_ma_obs(feedback.obs)
 
         rewards = {i: feedback.reward[0][0] for i in self.team0}
-        rewards = {i: feedback.reward[1][0] for i in self.team1}
-        rewards = {i: feedback.reward[2][0] for i in self.team2}
+        rewards.update({i: feedback.reward[1][0] for i in self.team1})
+        rewards.update({i: feedback.reward[2][0] for i in self.team2})
+
+        for agent_id in rewards.keys():
+            # print(f"{agent_id} : team_reward = {rewards[agent_id]} intrinsic_reward = {self.get_intrinsic_reward(self._env._env.obs()[1][agent_id], agent_id)}")
+            rewards[agent_id] += np.clip(self.get_intrinsic_reward(self._env._env.obs()[1][agent_id], agent_id)*0.1, -1, 1)
+
+        for agent_id in range(9,12):
+            self.get_intrinsic_reward(self._env._env.obs()[1][str(agent_id)], str(agent_id))
 
         dones = {i: feedback.done for i in self.team0} 
         dones.update({i : feedback.done for i in self.team1})
@@ -139,13 +152,69 @@ class MAGoBigger(MultiAgentEnv):
                 ma_obs[str(i + team * self.player_num_per_team)]['unit_obs'] = obs[team][i]['unit_obs']
 
         return ma_obs
+
+
+    def process_clone_balls(self, clone_balls, name):
+        my_clone_balls = []
+        others_clone_balls = []
+        for clone_ball in clone_balls:
+            if clone_ball['player'] == name:
+                my_clone_balls.append(copy.deepcopy(clone_ball))
+        my_clone_balls.sort(key=lambda a: a['radius'], reverse=True)
+
+        for clone_ball in clone_balls:
+            if clone_ball['player'] != name:
+                others_clone_balls.append(copy.deepcopy(clone_ball))
+        others_clone_balls.sort(key=lambda a: a['radius'], reverse=True)
+        return my_clone_balls, others_clone_balls
+
+
+    def get_intrinsic_reward(self, raw_obs, agent_id):
+
+        # 4. target position diff incremental reward 
+        diff_target_pos_reward = 0
+
+        overlap = raw_obs['overlap']
+        overlap = self._env.bot.preprocess(overlap)
+        food_balls = overlap['food']
+        thorns_balls = overlap['thorns']
+        spore_balls = overlap['spore']
+        clone_balls = overlap['clone']
+
+        my_clone_balls, others_clone_balls = self.process_clone_balls(clone_balls, agent_id)
+
+        diff_target_pos_reward = 0
+
+        if self.prev_pos[agent_id] and self.negative_target_pos[agent_id]:
+            diff_target_pos_reward += (my_clone_balls[0]['position'] - self.negative_target_pos[agent_id]).length() - (self.prev_pos[agent_id] - self.negative_target_pos[agent_id]).length()
+        if self.prev_pos[agent_id] and self.positive_target_pos[agent_id]:
+            diff_target_pos_reward += (self.prev_pos[agent_id] - self.positive_target_pos[agent_id]).length() - (my_clone_balls[0]['position'] - self.positive_target_pos[agent_id]).length()
+
+        self.prev_pos[agent_id] = my_clone_balls[0]['position']
+
+        if len(others_clone_balls) > 0 and my_clone_balls[0]['radius'] < others_clone_balls[0]['radius']:
+            self.negative_target_pos[agent_id] = others_clone_balls[0]['position']
+        else:
+            min_distance, min_thorns_ball = self._env.bot.process_thorns_balls(thorns_balls, my_clone_balls[0])
+            if min_thorns_ball is not None:
+                self.positive_target_pos[agent_id] = min_thorns_ball['position']
+            else:
+                min_distance, min_food_ball = self._env.bot.process_food_balls(food_balls, my_clone_balls[0])
+                if min_food_ball is not None:
+                    self.positive_target_pos[agent_id] = min_food_ball['position'] 
+                else:
+                    self.positive_target_pos[agent_id] = Vector2(0, 0)
+
+        # print(f"agent = {agent_id} prev position = {self.prev_pos[agent_id]} neg_pos =  {self.negative_target_pos[agent_id]} pos_pos = {self.positive_target_pos[agent_id]} reward = {diff_target_pos_reward}")
+
+        return diff_target_pos_reward   
     
 
 
 
 if __name__ == "__main__":
 
-    env=dict(
+    env = dict(
         collector_env_num=32,
         evaluator_env_num=8,
         n_evaluator_episode=8,
@@ -167,7 +236,8 @@ if __name__ == "__main__":
         train=True,
         manager=dict(shared_memory=False, ),
     )
-    env = MAGoBigger(env)
+    env = MAGoBigger(EasyDict(env))
     obs = env.reset()
-    actions = { str(i) : np.array([1]) for i in range(3)}
-    env.step(actions)
+    for i in range(100):
+        actions = { str(i) : np.array(1) for i in range(9)}
+        env.step(actions)
