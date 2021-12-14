@@ -58,7 +58,7 @@ tf.app.flags.DEFINE_float(
     'Number of workers to place on a single device (CPU or GPU)')
 
 tf.app.flags.DEFINE_float('entropy_coeff', 0.00, 'The entropy')
-tf.app.flags.DEFINE_float('gamma', 0.99, 'gamma')
+tf.app.flags.DEFINE_float('gamma', 0.95, 'gamma')
 tf.app.flags.DEFINE_float('lam', 0.95, 'lambda')
 tf.app.flags.DEFINE_string( 'restore', '', 'load model path')
 
@@ -68,13 +68,13 @@ gc_default_params = {
     'lr_final': 1e-5,
 }
 ppo_params = {
-    'entropy_coeff': 0.005,
+    'entropy_coeff': 0.01,
     #'entropy_coeff_schedule': [[0, FLAGS.entropy_coeff],[2000000, 0.0]],
     'use_gae': True,
     'kl_coeff': 0.0,
     "lambda" : FLAGS.lam,
     "gamma" : FLAGS.gamma,
-    "clip_param" : 0.2,
+    "clip_param" : 0.1,
     "sgd_minibatch_size" : 1024,
     "train_batch_size" : 2048,
     "num_sgd_iter" : 4,
@@ -122,9 +122,11 @@ def setup(env, hparams, algorithm, train_batch_size, num_cpus, num_gpus,
     # Setup PPO with an ensemble of `num_policies` different policy graphs
     policy_graphs = {}
     policy_graphs['policy-0'] = gen_policy()
-    
+    policy_graphs['policy-1'] = gen_policy()
+    policy_graphs['policy-2'] = gen_policy()
+
     def policy_mapping_fn(agent_id):
-        return 'policy-0'
+        return f'policy-{int(agent_id) // 3}'
 
 
     # register the custom model

@@ -74,6 +74,8 @@ class MAGoBigger(MultiAgentEnv):
         self.negative_target_pos = { str(i) : None for i in range(self.team_num * self.player_num_per_team)}
         self.prev_pos = { str(i) : None for i in range(self.team_num * self.player_num_per_team)}
 
+        self.final_reward = [0 for _ in range(4)]
+
 
 
     def reset(self) -> MultiAgentDict:
@@ -111,7 +113,9 @@ class MAGoBigger(MultiAgentEnv):
 
         for agent_id in rewards.keys():
             # print(f"{agent_id} : team_reward = {rewards[agent_id]} intrinsic_reward = {self.get_intrinsic_reward(self._env._env.obs()[1][agent_id], agent_id)}")
-            rewards[agent_id] = 0.25*rewards[agent_id] + 0.75*np.clip(self.get_intrinsic_reward(self._env._env.obs()[1][agent_id], agent_id)*0.1, -1, 1)
+            intrinsic_reward = np.clip(self.get_intrinsic_reward(self._env._env.obs()[1][agent_id], agent_id)*0.1, -1, 1)
+            self._env.info[int(agent_id) // 3]["final_eval_reward"] += np.clip(self.get_intrinsic_reward(self._env._env.obs()[1][agent_id], agent_id)*0.1, -1, 1)
+            rewards[agent_id] = 0.5*rewards[agent_id] + 0.5*intrinsic_reward
 
         # for agent_id in range(9,12):
         #     self.get_intrinsic_reward(self._env._env.obs()[1][str(agent_id)], str(agent_id))
