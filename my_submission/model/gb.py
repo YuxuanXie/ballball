@@ -24,11 +24,15 @@ class ScaleDotProductionAttention(nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, q, k, v):
+    def forward(self, q, k, v, mask=None):
         d_model = q.shape[-1]
-        entity_embedding = F.softmax((torch.matmul(q, k.permute(0,2,1)))/math.sqrt(d_model), dim=-1)
+        attn = (torch.matmul(q, k.permute(0,2,1)))/math.sqrt(d_model)
+
+        if mask is not None:
+            attn = attn.masked_fill(mask == 0, -1e9)
+        entity_embedding = F.softmax(attn, dim=-1)
+        
         entity_embedding = torch.matmul(entity_embedding, v)
-        entity_embedding = torch.mean(entity_embedding, dim=1, keepdim=True)
         return entity_embedding
 
 class TorchRNNModel(TorchRNN, nn.Module):
@@ -114,6 +118,7 @@ class TorchRNNModel(TorchRNN, nn.Module):
         bs = inputs.shape[0]
         seq = inputs.shape[1]
         entities = inputs[:,:,50:].reshape(-1, seq, self.entity_shape)
+        mask = entities.sum(axis=-1)
 
         obs_embedding = F.relu(self.obs_encoder(obs))
 
@@ -121,7 +126,13 @@ class TorchRNNModel(TorchRNN, nn.Module):
         q = q.reshape(bs*seq, -1, self.entity_embedding_size)
         k = k.reshape(bs*seq, -1, self.entity_embedding_size)
         v = v.reshape(bs*seq, -1, self.entity_embedding_size)
-        entity_embedding = self.attention(q, k, v)
+        mask = mask.reshape(bs*seq, -1, 1)
+        mask = torch.matmul(mask, mask.permute(0, 2, 1))
+
+        entity_embedding = self.attention(q, k, v, mask=mask)
+
+        entity_embedding = torch.mean(entity_embedding, dim=1, keepdim=True)
+
         entity_embedding = entity_embedding.reshape(bs, seq, self.entity_embedding_size)
         # import pdb; pdb.set_trace()
         all_embedding = torch.cat((obs_embedding, entity_embedding), dim=-1)
