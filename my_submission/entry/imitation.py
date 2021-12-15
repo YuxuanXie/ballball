@@ -202,7 +202,7 @@ class Worker():
                 experience.obs.append(ma_obs)
                 experience.action.append(ma_a)
                 experience.reward.append(team_reward)
-
+                import pdb; pdb.set_trace()
                 finish_flag = self.server.step(actions=actions) # 环境执行动作
                 # print('{} {:.4f} leaderboard={}'.format(i, self.server.last_time, obs[0]['leaderboard']))
                 if finish_flag:
@@ -233,14 +233,14 @@ class Worker():
     def extract_ma_actions(self, actions):
         action = []
         discret_action = []
-        discret_action = [ (round(v[0]) if v[0] else 1, round(v[1]) if v[1] else 0, round(v[2])) for k, v in actions.items() ]
+        # discret_action = [ (round(v[0]) if v[0] else 1, round(v[1]) if v[1] else 0, round(v[2])) for k, v in actions.items() ]
 
-        for agent_id, action in action.items():
-            if action[0] and action[1]:
-                discret_action.append( (round(action[0]), round(action[1], round(action[2]))) )
+        for agent_id, a in actions.items():
+            if a[0] and a[1]:
+                discret_action.append( (round(a[0]), round(a[1]), round(a[2])))
             else:
                 random_direction = random.sample([(1, 0), (-1, 0), (0, 1), (0, -1)], 1)[0]
-                discret_action.append((random_direction[0], random_direction[1], round(action[2])))
+                discret_action.append((random_direction[0], random_direction[1], round(a[2])))
 
         for each in discret_action:
             x,y,action_type = each
@@ -252,7 +252,7 @@ class Worker():
                 direction = 2
             elif x == 1 and y == 0:
                 direction = 3
-                
+
             action.append((action_type+1)*4+direction)
         
         return np.eye(16)[action]
@@ -304,20 +304,21 @@ def remote_worker(conn, worker):
 cuda = True
 
 if __name__ == '__main__':
-    collect_data = False
+    collect_data = True
     
     if collect_data:
-        multiprocessing.set_start_method('spawn')
-        parent_conns, worker_conns = zip(*[Pipe() for _ in range(4)])
-        ps = [Process(target=remote_worker, args=(worker_conn, CloudpickleWrapper(partial(env_func, env=Worker, start_id=i+2, num_episode=4)))) for i, worker_conn in enumerate(worker_conns)]
+        # multiprocessing.set_start_method('spawn')
+        # parent_conns, worker_conns = zip(*[Pipe() for _ in range(1)])
+        # ps = [Process(target=remote_worker, args=(worker_conn, CloudpickleWrapper(partial(env_func, env=Worker, start_id=i+2, num_episode=4)))) for i, worker_conn in enumerate(worker_conns)]
         
-        for p in ps:
-            p.daemon = True
-            p.start()
+        # for p in ps:
+        #     p.daemon = True
+        #     p.start()
         
-        for p in ps:
-            p.join()
-
+        # for p in ps:
+        #     p.join()
+        worker = Worker(0, 1)
+        worker.collect()
     else:
         learner = PPOBot()
         if cuda:

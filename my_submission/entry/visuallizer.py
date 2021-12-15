@@ -35,10 +35,10 @@ model_config = {
 class PPOBot():
     def __init__(self, checkpoint_path, player_names) -> None:
         self.checkpoint = pickle.load(open(checkpoint_path, 'rb'))
-        self.worker_info = pickle.loads(self.checkpoint['worker'])
-        self.model = TorchRNNModel(self.worker_info['policy_specs']['policy-0'].observation_space, self.worker_info['policy_specs']['policy-0'].action_space, 16, model_config, "PPOBot")
-        self.model.load_state_dict(convert_to_torch_tensor(self.worker_info['state']['policy-0']['weights']))
-        # self.model = TorchRNNModel(None, None, 16, model_config, "PPOBot")
+        # self.worker_info = pickle.loads(self.checkpoint['worker'])
+        # self.model = TorchRNNModel(self.worker_info['policy_specs']['policy-0'].observation_space, self.worker_info['policy_specs']['policy-0'].action_space, 16, model_config, "PPOBot")
+        # self.model.load_state_dict(convert_to_torch_tensor(self.worker_info['state']['policy-0']['weights']))
+        self.model = TorchRNNModel(None, None, 16, model_config, "PPOBot")
         # self.model.load_state_dict(torch.load("1.pkl", map_location='cpu'))
         self.env = GoBiggerEnv(env_config)
         self.player_names = player_names

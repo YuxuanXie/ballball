@@ -64,12 +64,12 @@ tf.app.flags.DEFINE_string( 'restore', '', 'load model path')
 
 
 gc_default_params = {
-    'lr_init': 3e-5,
+    'lr_init': 5e-5,
     'lr_final': 1e-5,
 }
 ppo_params = {
     'entropy_coeff': 0.01,
-    #'entropy_coeff_schedule': [[0, FLAGS.entropy_coeff],[2000000, 0.0]],
+    'entropy_coeff_schedule': [[0, 0.01],[50000000, 0.001]],
     'use_gae': True,
     'kl_coeff': 0.0,
     "lambda" : FLAGS.lam,
@@ -205,6 +205,7 @@ def on_episode_end(info):
             episode.custom_metrics[f"reward{i}"] = info["0"]["final_reward"][i]
             episode.custom_metrics[f"size{i}"] = info["0"]["size"][str(i)]
             episode.custom_metrics["rank{}".format(info["0"]["rank"][i])] = i+1
+            episode.custom_metrics["total_size{}".format(info["0"]["total_size"][i])] = i+1
 
 def main(unused_argv):
     ray.init(num_cpus=FLAGS.num_cpus)

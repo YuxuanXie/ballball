@@ -114,7 +114,7 @@ class MAGoBigger(MultiAgentEnv):
         for agent_id in rewards.keys():
             # print(f"{agent_id} : team_reward = {rewards[agent_id]} intrinsic_reward = {self.get_intrinsic_reward(self._env._env.obs()[1][agent_id], agent_id)}")
             intrinsic_reward = np.clip(self.get_intrinsic_reward(self._env._env.obs()[1][agent_id], agent_id)*0.1, -1, 1)
-            self._env.info[int(agent_id) // 3]["final_eval_reward"] += np.clip(self.get_intrinsic_reward(self._env._env.obs()[1][agent_id], agent_id)*0.1, -1, 1)
+            # self._env.info[int(agent_id) // 3]["final_eval_reward"] += np.clip(self.get_intrinsic_reward(self._env._env.obs()[1][agent_id], agent_id)*0.1, -1, 1)
             rewards[agent_id] = 0.5*rewards[agent_id] + 0.5*intrinsic_reward
 
         # for agent_id in range(9,12):
@@ -129,6 +129,7 @@ class MAGoBigger(MultiAgentEnv):
         info['0'] = {}
         if dones["__all__"]:
             info['0']['final_reward'] = [feedback.info[i]['final_eval_reward'] for i in range(self.team_num)]
+            info['0']['total_size'] = [feedback.info[i]['final_size'] for i in range(self.team_num)]
             info['0']['size'] = self._env._env.obs()[0]["leaderboard"]
             info['0']['rank'] = np.argsort(np.array(list(self._env._env.obs()[0]['leaderboard'].values())))[::-1]
 
@@ -141,8 +142,8 @@ class MAGoBigger(MultiAgentEnv):
     @property
     def observation_space(self):
         return Dict({
-            'scalar_obs' : Box(low=-1000, high=1000, shape=(50,)),
-            'unit_obs' : Box(low=-1000, high=1000, shape=(200,31))
+            'scalar_obs' : Box(low=-10, high=10, shape=(50,)),
+            'unit_obs' : Box(low=-10, high=10, shape=(200,31))
         })
 
     def extract_ma_obs(self, obs, teams=[0,1,2]):

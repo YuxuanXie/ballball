@@ -76,6 +76,7 @@ class GoBiggerEnv(BaseEnv):
             pass
             # self._env.seed(self._seed)
         self._final_eval_reward = [0. for _ in range(self._team_num)]
+        self._final_size = [0. for _ in range(self._team_num)]
         self._env.reset()
         raw_obs = self._env.obs()
         obs = self._obs_transform(raw_obs)
@@ -243,7 +244,7 @@ class GoBiggerEnv(BaseEnv):
                 # 2. team rank reward
                 team_rank_reward = np.clip(np.array([cur_size - max_size])/cur_size * 0.01, -1, 0) + 0.5
 
-                team_reward_item = 0.75*diff_incremental_reawrd + 0.25 * team_rank_reward
+                team_reward_item = 0.75*diff_incremental_reawrd + 0.25*team_rank_reward
 
                 team_reward.append(team_reward_item)
 
@@ -251,7 +252,7 @@ class GoBiggerEnv(BaseEnv):
             if abs(global_state['last_time'] % 15 - 0) < 0.01 or global_state['last_time'] >= global_state['total_time']:
                 rank = np.array(list(global_state['leaderboard'].values()))
                 rank = np.argsort(rank)[::-1]
-                final_reward = [5, -1, -2, -5]
+                final_reward = [20, -5, -10, -20]
                 for i in range(len(rank)):
                     team_reward[rank[i]] += final_reward[i]
 
@@ -268,9 +269,11 @@ class GoBiggerEnv(BaseEnv):
 
         for i, team_reward in enumerate(rew):
             self._final_eval_reward[i] += team_reward
+            self._final_size[i] += raw_obs[0]["leaderboard"][str(i)]
         if done:
             for i in range(self._team_num):
                 info[i]['final_eval_reward'] = self._final_eval_reward[i]
+                info[i]['final_size'] = self._final_size[i]
         return BaseEnvTimestep(obs, rew, done, info)
 
     def info(self) -> BaseEnvInfo:
