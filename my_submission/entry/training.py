@@ -161,7 +161,7 @@ def setup(env, hparams, algorithm, train_batch_size, num_cpus, num_gpus,
                 # "horizon": 3 * one_layer_length, # it dosnot make done in step function true
                 "lr_schedule":
                 [[0, hparams['lr_init']],
-                    [2000000, hparams['lr_final']]],
+                    [5000000, hparams['lr_final']]],
                 "num_workers": num_workers,
                 "num_gpus": gpus_for_driver,  # The number of GPUs for the driver
                 "num_cpus_for_driver": cpus_for_driver,
@@ -205,8 +205,7 @@ def on_episode_end(info):
             episode.custom_metrics[f"reward{i}"] = info["0"]["final_reward"][i]
             episode.custom_metrics[f"size{i}"] = info["0"]["size"][str(i)]
             episode.custom_metrics["rank{}".format(info["0"]["rank"][i])] = i+1
-            episode.custom_metrics["total_size{}".format(info["0"]["total_size"][i])] = i+1
-
+            episode.custom_metrics["total_size{}".format(i)] = info["0"]["total_size"][i]
 def main(unused_argv):
     ray.init(num_cpus=FLAGS.num_cpus)
     hparams = gc_default_params
