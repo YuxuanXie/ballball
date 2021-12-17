@@ -6,6 +6,7 @@ from ray import tune
 from ray.rllib.agents.registry import get_agent_class
 from ray.rllib.agents.ppo.ppo_torch_policy import PPOTorchPolicy as PPOPolicyGraph
 from ray.rllib.agents.impala.vtrace_torch_policy import VTraceTorchPolicy
+from ray.rllib.agents.dqn.dqn_torch_policy import DQNTorchPolicy
 
 from ray.rllib.models import ModelCatalog
 from ray.tune import run_experiments
@@ -91,9 +92,27 @@ ppo_params = {
 
 
 impala_params = {
-
+    'entropy_coeff_schedule': [[0, 0.01],[5000000, 0.001]],
+    "vf_loss_coeff": 0.2,
+    "rollout_fragment_length": 64,
+    "train_batch_size": 1024,
+    "min_iter_time_s": 10,
 }
 
+apex_params = {
+    "n_step": 3,
+    "buffer_size": 5000000,
+    # TODO(jungong) : add proper replay_buffer_config after
+    #     DistributedReplayBuffer type is supported.
+    "learning_starts": 10000,
+    "train_batch_size": 1024,
+    "rollout_fragment_length": 50,
+    "target_network_update_freq": 50000,
+    "timesteps_per_iteration": 25000,
+    "exploration_config": {"type": "PerWorkerEpsilonGreedy"},
+    "worker_side_prioritization": True,
+    "min_iter_time_s": 30,
+}
 
 
 def setup(env, hparams, algorithm, train_batch_size, num_cpus, num_gpus, 
@@ -115,9 +134,10 @@ def setup(env, hparams, algorithm, train_batch_size, num_cpus, num_gpus,
     def gen_policy():
         if algorithm == 'PPO':
             return (PPOPolicyGraph, obs_space, act_space, {})
-        else:
+        elif algorithm == 'IMPALA':
             return (VTraceTorchPolicy, obs_space, act_space, {})
-            
+        elif algorithm == 'APEX':
+            return (DQNTorchPolicy, obs_space, act_space, {})
 
     # Setup PPO with an ensemble of `num_policies` different policy graphs
     policy_graphs = {}
@@ -187,8 +207,10 @@ def setup(env, hparams, algorithm, train_batch_size, num_cpus, num_gpus,
     })
     if algorithm == 'PPO':
         config.update(ppo_params)
-    else:
+    elif algorithm == 'IMPALA':
         config.update(impala_params)
+    elif algorithm == 'APEX':
+        config.update(apex_params)
 
     config.update({"callbacks": {
         "on_episode_end": tune.function(on_episode_end),
