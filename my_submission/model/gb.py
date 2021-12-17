@@ -43,7 +43,7 @@ class TorchRNNModel(TorchRNN, nn.Module):
                 model_config,
                 name,
                 fc_size=64,
-                lstm_state_size=128):
+                lstm_state_size=64):
         nn.Module.__init__(self)
         super().__init__(obs_space, action_space, num_outputs, model_config,
                         name)
@@ -137,7 +137,7 @@ class TorchRNNModel(TorchRNN, nn.Module):
         # import pdb; pdb.set_trace()
         all_embedding = torch.cat((obs_embedding, entity_embedding), dim=-1)
         core = F.relu(self.all_encoder(all_embedding))
-
+        
         # packed_input = pack_padded_sequence(output, self.sequence_length)
         self._features, [h,c] = self.rnn(core, [torch.unsqueeze(state[0], 0), torch.unsqueeze(state[1], 0)])
         logits = self.logits(self._features)

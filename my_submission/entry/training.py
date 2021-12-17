@@ -179,8 +179,8 @@ def setup(env, hparams, algorithm, train_batch_size, num_cpus, num_gpus,
                     "custom_model_config": {
                         "obs_shape" : 50,
                         "entity_shape" : 31,
-                        "obs_embedding_size" : 128,
-                        "entity_embedding_size" : 128,
+                        "obs_embedding_size" : 32,
+                        "entity_embedding_size" : 64,
                         "all_embedding_size" : 128,
                     }
                 },
