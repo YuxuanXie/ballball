@@ -122,11 +122,11 @@ class MAGoBigger(MultiAgentEnv):
         rewards.update({i: feedback.reward[1][0] for i in self.team1})
         rewards.update({i: feedback.reward[2][0] for i in self.team2})
 
-        for agent_id in rewards.keys():
-            # print(f"{agent_id} : team_reward = {rewards[agent_id]} intrinsic_reward = {self.get_intrinsic_reward(self._env._env.obs()[1][agent_id], agent_id)}")
-            intrinsic_reward = np.clip(self.get_intrinsic_reward(self._env._env.obs()[1][agent_id], agent_id)*0.1, -1, 1)
-            # self._env.info[int(agent_id) // 3]["final_eval_reward"] += np.clip(self.get_intrinsic_reward(self._env._env.obs()[1][agent_id], agent_id)*0.1, -1, 1)
-            rewards[agent_id] = 0.8*rewards[agent_id] + 0.2*intrinsic_reward
+        # for agent_id in rewards.keys():
+        #     # print(f"{agent_id} : team_reward = {rewards[agent_id]} intrinsic_reward = {self.get_intrinsic_reward(self._env._env.obs()[1][agent_id], agent_id)}")
+        #     intrinsic_reward = np.clip(self.get_intrinsic_reward(self._env._env.obs()[1][agent_id], agent_id)*0.1, -1, 1)
+        #     # self._env.info[int(agent_id) // 3]["final_eval_reward"] += np.clip(self.get_intrinsic_reward(self._env._env.obs()[1][agent_id], agent_id)*0.1, -1, 1)
+        #     rewards[agent_id] = 0.8*rewards[agent_id] + 0.2*intrinsic_reward
 
         # for agent_id in range(9,12):
         #     self.get_intrinsic_reward(self._env._env.obs()[1][str(agent_id)], str(agent_id))

@@ -242,9 +242,9 @@ class GoBiggerEnv(BaseEnv):
                 max_size = max(list(global_state['leaderboard'].values()))
 
                 # 2. team rank reward
-                team_rank_reward = np.clip(np.array([cur_size - max_size])/cur_size * 0.01, -1, 0) + 0.5
+                team_rank_reward = np.clip(np.array([cur_size - max_size])/cur_size*0.01, -1, 0) + 0.5
 
-                team_reward_item = 0.75*diff_incremental_reawrd + 0.25*team_rank_reward
+                team_reward_item = 0.5*diff_incremental_reawrd + team_rank_reward
 
                 team_reward.append(team_reward_item)
 
