@@ -78,9 +78,10 @@ ppo_params = {
     "clip_param" : 0.2,
     "sgd_minibatch_size" : 1024,
     "train_batch_size" : 4096,
-    "num_sgd_iter" : 32,
+    "num_sgd_iter" : 4,
     "rollout_fragment_length" : 64,
     "grad_clip" : 30,
+    "vf_loss_coeff": 0.1,
     # "sgd_minibatch_size" : 128*5,
     # "train_batch_size" : 5000,
     # "num_sgd_iter" : 8,
@@ -104,14 +105,15 @@ apex_params = {
     "buffer_size": 5000000,
     # TODO(jungong) : add proper replay_buffer_config after
     #     DistributedReplayBuffer type is supported.
-    "learning_starts": 10000,
+    "learning_starts": 1024,
     "train_batch_size": 1024,
     "rollout_fragment_length": 50,
     "target_network_update_freq": 50000,
-    "timesteps_per_iteration": 25000,
+    "timesteps_per_iteration": 10240,
     "exploration_config": {"type": "PerWorkerEpsilonGreedy"},
     "worker_side_prioritization": True,
     "min_iter_time_s": 30,
+    "num_workers":64,
 }
 
 
