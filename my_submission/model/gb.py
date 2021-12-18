@@ -142,8 +142,10 @@ class TorchRNNModel(TorchRNN, nn.Module):
         # packed_input = pack_padded_sequence(output, self.sequence_length)
         self._features, [h,c] = self.rnn(core, [torch.unsqueeze(state[0], 0), torch.unsqueeze(state[1], 0)])
         type_logits = self.logits(self._features)
-        unit_logits = self.unit_selection(entity_embeddings)
-        logits = torch.cat((unit_logits.reshape(bs, seq, -1), type_logits), dim=-1)
+        unit_logits = self.unit_selection(entity_embeddings).reshape(bs, seq, -1)
+        mask_unit = mask.reshape(bs, seq, -1).detach()
+        unit_logits = unit_logits.masked_fill(mask_unit == 0, -1e9)
+        logits = torch.cat((unit_logits, type_logits), dim=-1)
         return logits, [torch.squeeze(h, 0), torch.squeeze(c, 0)]
 
 
