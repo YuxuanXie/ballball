@@ -30,9 +30,9 @@ class ScaleDotProductionAttention(nn.Module):
 
         if mask is not None:
             attn = attn.masked_fill(mask == 0, -1e9)
-        entity_embedding = F.softmax(attn, dim=-1)
+        entity_embedding_prob = F.softmax(attn, dim=-1)
         
-        entity_embedding = torch.matmul(entity_embedding, v)
+        entity_embedding = torch.matmul(entity_embedding_prob, v)
         return entity_embedding
 
 class TorchRNNModel(TorchRNN, nn.Module):
@@ -55,7 +55,7 @@ class TorchRNNModel(TorchRNN, nn.Module):
         custom_model_config = model_config["custom_model_config"]
 
         self.obs_size = custom_model_config["obs_shape"]
-        self.action_shape = num_outputs
+        self.action_type_shape = 4
         self.entity_shape = custom_model_config["entity_shape"]
         self.obs_embedding_size, self.entity_embedding_size = custom_model_config["obs_embedding_size"], custom_model_config["entity_embedding_size"]
         self.all_embedding_size = custom_model_config["all_embedding_size"]
@@ -74,10 +74,11 @@ class TorchRNNModel(TorchRNN, nn.Module):
         self.rnn = nn.LSTM(input_size=self.all_embedding_size, hidden_size=self.rnn_size, batch_first=True)
         # self.logits = nn.Linear(self.rnn_size, self.action_shape)
         # self.values = nn.Linear(self.rnn_size, 1)
+        self.unit_selection = nn.Linear(self.entity_embedding_size, 1)
         self.logits= nn.Sequential(
             nn.Linear(self.rnn_size, 32),
             nn.ReLU(),
-            nn.Linear(32, self.action_shape),
+            nn.Linear(32, self.action_type_shape),
         )
         self.values = nn.Sequential(
             nn.Linear(self.rnn_size, 32),
@@ -127,11 +128,11 @@ class TorchRNNModel(TorchRNN, nn.Module):
         k = k.reshape(bs*seq, -1, self.entity_embedding_size)
         v = v.reshape(bs*seq, -1, self.entity_embedding_size)
         mask = mask.reshape(bs*seq, -1, 1)
-        mask = torch.matmul(mask, mask.permute(0, 2, 1))
+        mask_attn = torch.matmul(mask, mask.permute(0, 2, 1))
 
-        entity_embedding = self.attention(q, k, v, mask=mask)
+        entity_embeddings = self.attention(q, k, v, mask=mask_attn.detach())
 
-        entity_embedding = torch.mean(entity_embedding, dim=1, keepdim=True)
+        entity_embedding = torch.mean(entity_embeddings, dim=1, keepdim=True)
 
         entity_embedding = entity_embedding.reshape(bs, seq, self.entity_embedding_size)
         # import pdb; pdb.set_trace()
@@ -140,7 +141,9 @@ class TorchRNNModel(TorchRNN, nn.Module):
         
         # packed_input = pack_padded_sequence(output, self.sequence_length)
         self._features, [h,c] = self.rnn(core, [torch.unsqueeze(state[0], 0), torch.unsqueeze(state[1], 0)])
-        logits = self.logits(self._features)
+        type_logits = self.logits(self._features)
+        unit_logits = self.unit_selection(entity_embeddings)
+        logits = torch.cat((unit_logits.reshape(bs, seq, -1), type_logits), dim=-1)
         return logits, [torch.squeeze(h, 0), torch.squeeze(c, 0)]
 
 
