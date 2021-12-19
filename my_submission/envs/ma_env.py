@@ -1,4 +1,6 @@
 from typing import List
+
+# from torch import random
 # import pathlib
 # sys.path.append(pathlib.Path(__file__).parent.resolve())
 from envs.gobigger_env import GoBiggerEnv
@@ -10,7 +12,7 @@ from gobigger.agents import BotAgent
 from gym.spaces import Discrete, Dict, Box, MultiDiscrete
 from pygame.math import Vector2
 import copy
-
+import random
 
 
 
@@ -130,7 +132,7 @@ class MAGoBigger(MultiAgentEnv):
 
         # for agent_id in range(9,12):
         #     self.get_intrinsic_reward(self._env._env.obs()[1][str(agent_id)], str(agent_id))
-
+        print(f"{feedback.reward}")
         dones = {i: feedback.done for i in self.team0} 
         dones.update({i : feedback.done for i in self.team1})
         dones.update({i : feedback.done for i in self.team2})
@@ -255,6 +257,6 @@ if __name__ == "__main__":
     )
     env = MAGoBigger(EasyDict(env))
     obs = env.reset()
-    for i in range(100):
-        actions = { str(i) : np.array([50, 2]) for i in range(9)}
+    for i in range(1000):
+        actions = { str(i) : np.array([random.randint(0,199), random.randint(0,3)]) for i in range(9)}
         env.step(actions)
