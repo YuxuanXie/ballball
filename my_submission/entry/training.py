@@ -65,8 +65,8 @@ tf.app.flags.DEFINE_string( 'restore', '', 'load model path')
 
 
 gc_default_params = {
-    'lr_init': 5e-5,
-    'lr_final': 1e-5,
+    'lr_init': 1e-5,
+    'lr_final': 5e-6,
 }
 ppo_params = {
     'entropy_coeff': 0.01,
@@ -77,8 +77,8 @@ ppo_params = {
     "gamma" : FLAGS.gamma,
     "clip_param" : 0.2,
     "sgd_minibatch_size" : 512,
-    "train_batch_size" : 512,
-    "num_sgd_iter" : 2,
+    "train_batch_size" : 1024,
+    "num_sgd_iter" : 4,
     "rollout_fragment_length" : 32,
     "grad_clip" : 30,
     "vf_loss_coeff": 0.1,
