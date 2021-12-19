@@ -132,7 +132,7 @@ class MAGoBigger(MultiAgentEnv):
 
         # for agent_id in range(9,12):
         #     self.get_intrinsic_reward(self._env._env.obs()[1][str(agent_id)], str(agent_id))
-        print(f"{feedback.reward}")
+        # print(f"{feedback.reward}")
         dones = {i: feedback.done for i in self.team0} 
         dones.update({i : feedback.done for i in self.team1})
         dones.update({i : feedback.done for i in self.team2})
