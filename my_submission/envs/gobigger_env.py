@@ -249,14 +249,14 @@ class GoBiggerEnv(BaseEnv):
             zero_sum_reward = []
             for i in range(self._team_num):
                 other_teams_mean = (sum(team_reward) - team_reward[i]) / (self._team_num - 1)
-                zero_sum_reward.append(0.1*(team_reward[i] - other_teams_mean))
+                zero_sum_reward.append(0.1*( 0.8*team_reward[i] + 0.2*(team_reward[i] - other_teams_mean) ))
             team_reward = zero_sum_reward
 
             # if global_state['last_time'] >= global_state['total_time']:
             if abs(global_state['last_time'] % 15 - 0) < 0.01 or global_state['last_time'] >= global_state['total_time']:
                 rank = np.array(list(global_state['leaderboard'].values()))
                 rank = np.argsort(rank)[::-1]
-                final_reward = [10, -5, -8, -10]
+                final_reward = [5, 0, -2, -4]
                 for i in range(len(rank)):
                     team_reward[rank[i]] += final_reward[i]
 

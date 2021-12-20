@@ -76,14 +76,14 @@ class TorchRNNModel(TorchRNN, nn.Module):
         # self.values = nn.Linear(self.rnn_size, 1)
         self.unit_selection = nn.Linear(self.entity_embedding_size, 1)
         self.logits= nn.Sequential(
-            nn.Linear(self.rnn_size, 32),
+            nn.Linear(self.rnn_size, 128),
             nn.ReLU(),
-            nn.Linear(32, self.action_type_shape),
+            nn.Linear(128, self.action_type_shape),
         )
         self.values = nn.Sequential(
-            nn.Linear(self.rnn_size, 32),
+            nn.Linear(self.rnn_size, 128),
             nn.ReLU(),
-            nn.Linear(32, 1),
+            nn.Linear(128, 1),
         )
         
 
