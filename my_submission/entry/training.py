@@ -65,8 +65,8 @@ tf.app.flags.DEFINE_string( 'restore', '', 'load model path')
 
 
 gc_default_params = {
-    'lr_init': 1e-5,
-    'lr_final': 5e-6,
+    'lr_init': 1e-4,
+    'lr_final': 1e-5,
 }
 ppo_params = {
     'entropy_coeff': 0.01,
@@ -76,9 +76,9 @@ ppo_params = {
     "lambda" : FLAGS.lam,
     "gamma" : FLAGS.gamma,
     "clip_param" : 0.2,
-    "sgd_minibatch_size" : 512,
+    "sgd_minibatch_size" : 1024,
     "train_batch_size" : 1024,
-    "num_sgd_iter" : 4,
+    "num_sgd_iter" : 2,
     "rollout_fragment_length" : 32,
     "grad_clip" : 30,
     "vf_loss_coeff": 0.1,
@@ -198,6 +198,7 @@ def setup(env, hparams, algorithm, train_batch_size, num_cpus, num_gpus,
                     "custom_model": "go_bigger", 
                     "lstm_cell_size": 128 ,
                     "max_seq_len" : 8,
+                    "vf_share_layers": True,
                     "custom_model_config": {
                         "obs_shape" : 50,
                         "entity_shape" : 31,
