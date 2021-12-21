@@ -120,7 +120,7 @@ class MAGoBigger(MultiAgentEnv):
         feedback = self._env.step([np.array(i) for i in gb_actions])
         self.original_obs = feedback.obs
         observations = self.extract_ma_obs(feedback.obs)
-        self.cur_obs = observations
+        self.cur_obs = copy.deepcopy(observations)
         self.cur_obs.update(self.extract_ma_obs(feedback.obs, teams=[1,2]))
 
         rewards = {i: feedback.reward[0][0] for i in self.team0}
