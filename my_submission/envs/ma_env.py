@@ -77,7 +77,6 @@ class MAGoBigger(MultiAgentEnv):
         self.negative_target_pos = { str(i) : None for i in range(self.team_num * self.player_num_per_team)}
         self.prev_pos = { str(i) : None for i in range(self.team_num * self.player_num_per_team)}
 
-        self.final_reward = [0 for _ in range(4)]
         self.cur_obs = None
 
 
@@ -87,6 +86,7 @@ class MAGoBigger(MultiAgentEnv):
         self.original_obs = obs
         ma_obs = self.extract_ma_obs(obs)
         self.cur_obs = ma_obs
+        self.cur_obs.update(self.extract_ma_obs(obs, teams=[1,2]))
         return ma_obs
 
     def seed(self, seed: int, dynamic_seed: bool = True):
@@ -94,8 +94,10 @@ class MAGoBigger(MultiAgentEnv):
     
     # actions : dict(agent_id -> a)
     def step(self, actions):
-
-        for k, v in actions.items():
+        
+        actions_copy = copy.deepcopy(actions)
+        actions_copy.update({str(i) : np.array([random.randint(0,199), random.randint(0,3)]) for i in range(3, 9)})
+        for k, v in actions_copy.items():
             overlap = self._env._env.obs()[1][k]['overlap']
             overlap = self._env.bot.preprocess(overlap)
             clone_balls = overlap['clone']
@@ -103,11 +105,11 @@ class MAGoBigger(MultiAgentEnv):
             selected_pos = self.cur_obs[k]['unit_obs'][v[0],0:2].tolist()
             direction = (Vector2(selected_pos) - my_clone_balls[0]['position']).normalize()
             # actions[k] = np.array([v]) 
-            actions[k] = np.array([direction.x, direction.y, v[1]]) 
+            actions_copy[k] = np.array([direction.x, direction.y, v[1]]) 
 
         gb_actions = []
         for i in range(3):
-            gb_actions.append([actions[str(i*3)], actions[str(i*3+1)], actions[str(i*3+2)]])
+            gb_actions.append([actions_copy[str(i*3)], actions_copy[str(i*3+1)], actions_copy[str(i*3+2)]])
 
         team3_obs = self.original_obs[3]
         actions3 = self.team3.forward(team3_obs)
@@ -119,10 +121,11 @@ class MAGoBigger(MultiAgentEnv):
         self.original_obs = feedback.obs
         observations = self.extract_ma_obs(feedback.obs)
         self.cur_obs = observations
+        self.cur_obs.update(self.extract_ma_obs(feedback.obs, teams=[1,2]))
 
         rewards = {i: feedback.reward[0][0] for i in self.team0}
-        rewards.update({i: feedback.reward[1][0] for i in self.team1})
-        rewards.update({i: feedback.reward[2][0] for i in self.team2})
+        # rewards.update({i: feedback.reward[1][0] for i in self.team1})
+        # rewards.update({i: feedback.reward[2][0] for i in self.team2})
 
         # for agent_id in rewards.keys():
         #     # print(f"{agent_id} : team_reward = {rewards[agent_id]} intrinsic_reward = {self.get_intrinsic_reward(self._env._env.obs()[1][agent_id], agent_id)}")
@@ -134,8 +137,8 @@ class MAGoBigger(MultiAgentEnv):
         #     self.get_intrinsic_reward(self._env._env.obs()[1][str(agent_id)], str(agent_id))
         # print(f"{feedback.reward}")
         dones = {i: feedback.done for i in self.team0} 
-        dones.update({i : feedback.done for i in self.team1})
-        dones.update({i : feedback.done for i in self.team2})
+        # dones.update({i : feedback.done for i in self.team1})
+        # dones.update({i : feedback.done for i in self.team2})
         dones['__all__'] = feedback.done 
 
         info = {}
@@ -160,7 +163,7 @@ class MAGoBigger(MultiAgentEnv):
             'unit_obs' : Box(low=-10, high=10, shape=(200,31))
         })
 
-    def extract_ma_obs(self, obs, teams=[0,1,2]):
+    def extract_ma_obs(self, obs, teams=[0]):
         ma_obs = dict()
         for team in teams:
             # Only extract team 0
