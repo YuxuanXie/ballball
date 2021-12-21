@@ -65,8 +65,8 @@ tf.app.flags.DEFINE_string( 'restore', '', 'load model path')
 
 
 gc_default_params = {
-    'lr_init': 1e-4,
-    'lr_final': 1e-5,
+    'lr_init': 3e-4,
+    'lr_final': 5e-4,
 }
 ppo_params = {
     'entropy_coeff': 0.01,
@@ -76,10 +76,10 @@ ppo_params = {
     "lambda" : FLAGS.lam,
     "gamma" : FLAGS.gamma,
     "clip_param" : 0.2,
-    "sgd_minibatch_size" : 1024,
-    "train_batch_size" : 1024,
-    "num_sgd_iter" : 2,
-    "rollout_fragment_length" : 32,
+    "sgd_minibatch_size" : 3072,
+    "train_batch_size" : 4096,
+    "num_sgd_iter" : 4,
+    "rollout_fragment_length" : 64,
     "grad_clip" : 30,
     "vf_loss_coeff": 0.1,
     # "sgd_minibatch_size" : 128*5,
@@ -144,8 +144,8 @@ def setup(env, hparams, algorithm, train_batch_size, num_cpus, num_gpus,
     # Setup PPO with an ensemble of `num_policies` different policy graphs
     policy_graphs = {}
     policy_graphs['policy-0'] = gen_policy()
-    policy_graphs['policy-1'] = gen_policy()
-    policy_graphs['policy-2'] = gen_policy()
+    # policy_graphs['policy-1'] = gen_policy()
+    # policy_graphs['policy-2'] = gen_policy()
 
     def policy_mapping_fn(agent_id):
         return f'policy-{int(agent_id) // 3}'
