@@ -85,7 +85,7 @@ class MAGoBigger(MultiAgentEnv):
         obs = self._env.reset()
         self.original_obs = obs
         ma_obs = self.extract_ma_obs(obs)
-        self.cur_obs = ma_obs
+        self.cur_obs = copy.deepcopy(ma_obs)
         self.cur_obs.update(self.extract_ma_obs(obs, teams=[1,2]))
         return ma_obs
 
