@@ -74,16 +74,15 @@ class TorchRNNModel(TorchRNN, nn.Module):
         self.rnn = nn.LSTM(input_size=self.all_embedding_size, hidden_size=self.rnn_size, batch_first=True)
         # self.logits = nn.Linear(self.rnn_size, self.action_shape)
         # self.values = nn.Linear(self.rnn_size, 1)
-        self.direction = nn.Linear(self.rnn_size, 6)
         self.logits= nn.Sequential(
-            nn.Linear(self.rnn_size, 128),
+            nn.Linear(self.rnn_size, 256),
             nn.ReLU(),
-            nn.Linear(128, self.action_type_shape),
+            nn.Linear(256, 6+self.action_type_shape),
         )
         self.values = nn.Sequential(
-            nn.Linear(self.rnn_size, 128),
-            nn.ReLU(),
-            nn.Linear(128, 1),
+            nn.Linear(self.rnn_size, 512),
+            nn.Tanh(),
+            nn.Linear(512, 1),
         )
         
 
@@ -140,9 +139,7 @@ class TorchRNNModel(TorchRNN, nn.Module):
         
         # packed_input = pack_padded_sequence(output, self.sequence_length)
         self._features, [h,c] = self.rnn(core, [torch.unsqueeze(state[0], 0), torch.unsqueeze(state[1], 0)])
-        type_logits = self.logits(self._features)
-        unit_logits = self.direction(self._features)
-        logits = torch.cat((unit_logits, type_logits), dim=-1)
+        logits = self.logits(self._features)
         return logits, [torch.squeeze(h, 0), torch.squeeze(c, 0)]
 
 
