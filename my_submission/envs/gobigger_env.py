@@ -107,9 +107,10 @@ class GoBiggerEnv(BaseEnv):
         last_time_feat = one_hot_np(round(min(1200, global_state['last_time']) / 100), 13)
         # only use leaderboard rank
         leaderboard_feat = np.zeros((self._team_num, self._team_num))
-        for idx, (team_name, team_size) in enumerate(global_state['leaderboard'].items()):
-            team_name_number = int(team_name[-1])
-            leaderboard_feat[idx, team_name_number] = 1
+        rank = np.array(list(global_state['leaderboard'].values()))
+        rank = np.argsort(rank)[::-1]
+        for idx, team in enumerate(rank):
+            leaderboard_feat[team, idx] = 1
         leaderboard_feat = leaderboard_feat.reshape(-1)
         global_feat = np.concatenate([total_time_feat, last_time_feat, leaderboard_feat])
         # player
@@ -256,7 +257,7 @@ class GoBiggerEnv(BaseEnv):
             if abs(global_state['last_time'] % 15 - 0) < 0.01:
                 rank = np.array(list(global_state['leaderboard'].values()))
                 rank = np.argsort(rank)[::-1]
-                final_reward = [5, 0, -2, -4]
+                final_reward = [10, 0, -5, -10]
                 for i in range(len(rank)):
                     team_reward[rank[i]] += final_reward[i]
 

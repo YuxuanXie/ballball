@@ -45,7 +45,7 @@ gc_default_params = {
     'lr_final': 1e-5,
 }
 ppo_params = {
-    'entropy_coeff': 0.00001,
+    'entropy_coeff': 0.000001,
     # 'entropy_coeff_schedule': [[0, 5e-6],[5000000, 1e-6]],
     'use_gae': True,
     'kl_coeff': 0.0,
