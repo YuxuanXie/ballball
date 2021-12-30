@@ -74,10 +74,11 @@ class TorchRNNModel(TorchRNN, nn.Module):
         self.rnn = nn.LSTM(input_size=self.all_embedding_size, hidden_size=self.rnn_size, batch_first=True)
         # self.logits = nn.Linear(self.rnn_size, self.action_shape)
         # self.values = nn.Linear(self.rnn_size, 1)
+        self.unit_selection = nn.Linear(self.entity_embedding_size, 1)
         self.logits= nn.Sequential(
             nn.Linear(self.rnn_size, 256),
             nn.ReLU(),
-            nn.Linear(256, 6+self.action_type_shape),
+            nn.Linear(256, self.action_type_shape),
         )
         self.values = nn.Sequential(
             nn.Linear(self.rnn_size, 512),
@@ -136,10 +137,15 @@ class TorchRNNModel(TorchRNN, nn.Module):
         # import pdb; pdb.set_trace()
         all_embedding = torch.cat((obs_embedding, entity_embedding), dim=-1)
         core = F.relu(self.all_encoder(all_embedding))
-        
+
         # packed_input = pack_padded_sequence(output, self.sequence_length)
         self._features, [h,c] = self.rnn(core, [torch.unsqueeze(state[0], 0), torch.unsqueeze(state[1], 0)])
-        logits = self.logits(self._features)
+
+        type_logits = self.logits(self._features)
+        unit_logits = self.unit_selection(entity_embeddings).reshape(bs, seq, -1)
+        mask_unit = mask.reshape(bs, seq, -1).detach()
+        unit_logits = unit_logits.masked_fill(mask_unit == 0, -1e9)
+        logits = torch.cat((unit_logits, type_logits), dim=-1)
         return logits, [torch.squeeze(h, 0), torch.squeeze(c, 0)]
 
 

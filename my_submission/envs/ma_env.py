@@ -96,18 +96,16 @@ class MAGoBigger(MultiAgentEnv):
     def step(self, actions):
         
         actions_copy = copy.deepcopy(actions)
-        actions_copy.update({str(i) : np.array([random.randint(0, 2), random.randint(0, 2), random.randint(0,3)]) for i in range(3, 9)})
+        actions_copy.update({str(i) : np.array([random.randint(0,199), random.randint(0,3)]) for i in range(3, 9)})
         for k, v in actions_copy.items():
-            # overlap = self._env._env.obs()[1][k]['overlap']
-            # overlap = self._env.bot.preprocess(overlap)
-            # clone_balls = overlap['clone']
-            # my_clone_balls, _ = self.process_clone_balls(clone_balls, k)
-            # selected_pos = self.cur_obs[k]['unit_obs'][v[0],0:2].tolist()
-            if v[0] == 1 and v[1] == 1:
-                actions_copy[k] = np.array([None, None, v[2]]) 
-            else:
-                direction = Vector2([v[0]-1, v[1]-1]).normalize()
-                actions_copy[k] = np.array([direction.x, direction.y, v[2]]) 
+            overlap = self._env._env.obs()[1][k]['overlap']
+            overlap = self._env.bot.preprocess(overlap)
+            clone_balls = overlap['clone']
+            my_clone_balls, _ = self.process_clone_balls(clone_balls, k)
+            selected_pos = self.cur_obs[k]['unit_obs'][v[0],0:2].tolist()
+            direction = (Vector2(selected_pos) - my_clone_balls[0]['position']).normalize()
+            # actions[k] = np.array([v]) 
+            actions_copy[k] = np.array([direction.x, direction.y, v[1]]) 
 
         gb_actions = []
         for i in range(3):
@@ -156,7 +154,7 @@ class MAGoBigger(MultiAgentEnv):
     @property
     def action_space(self):
         # return Discrete(self.action_type_shape)
-        return MultiDiscrete([3,3,4])
+        return MultiDiscrete([200,4])
 
     @property
     def observation_space(self):
@@ -263,5 +261,5 @@ if __name__ == "__main__":
     env = MAGoBigger(EasyDict(env))
     obs = env.reset()
     for i in range(1000):
-        actions = { str(i) : np.array([random.randint(0,2), random.randint(0,2), random.randint(0,3)]) for i in range(9)}
+        actions = { str(i) : np.array([random.randint(0,199), random.randint(0,3)]) for i in range(9)}
         env.step(actions)
