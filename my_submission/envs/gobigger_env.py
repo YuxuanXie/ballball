@@ -239,7 +239,7 @@ class GoBiggerEnv(BaseEnv):
                 last_size = self._last_team_size[team_name]
                 cur_size = global_state['leaderboard'][team_name]
                 # 1. difference incremental reward
-                diff_incremental_reawrd = np.clip(np.array([cur_size - last_size])*0.01 , -1, 1)
+                diff_incremental_reawrd = np.array([cur_size - last_size])*0.01
                 max_size = max(list(global_state['leaderboard'].values()))
                 # 2. team rank reward
                 team_rank_reward = (np.clip(np.array([cur_size - max_size]) * 0.1, -1, 0) + 0.5) * 0.1

@@ -26,12 +26,12 @@ tf.app.flags.DEFINE_string('algorithm', 'PPO', 'Name of the rllib algorithm to u
 tf.app.flags.DEFINE_integer('train_batch_size', 8,'Size of the total dataset over which one epoch is computed.')
 tf.app.flags.DEFINE_integer('checkpoint_frequency', 100,'Number of steps before a checkpoint is saved.')
 tf.app.flags.DEFINE_integer('training_iterations', 200000,'Total number of steps to train for')
-tf.app.flags.DEFINE_integer('num_cpus', 24, 'Number of available CPUs')
+tf.app.flags.DEFINE_integer('num_cpus', 32, 'Number of available CPUs')
 tf.app.flags.DEFINE_integer('num_gpus', 1, 'Number of available GPUs')
 tf.app.flags.DEFINE_boolean('use_gpus_for_workers', False, 'Set to true to run workers on GPUs rather than CPUs')
 tf.app.flags.DEFINE_boolean('use_gpu_for_driver', True, 'Set to true to run driver on GPU rather than CPU.')
 # num_workers_per_device increases and the sample time also increases. 2 is better here 
-tf.app.flags.DEFINE_float('num_workers_per_device', 2, 'Number of workers to place on a single device (CPU or GPU)')
+tf.app.flags.DEFINE_float('num_workers_per_device', 1, 'Number of workers to place on a single device (CPU or GPU)')
 tf.app.flags.DEFINE_float('num_cpus_for_driver', 1, 'Number of workers to place on a single device (CPU or GPU)')
 
 tf.app.flags.DEFINE_float('entropy_coeff', 0.00, 'The entropy')
@@ -42,18 +42,18 @@ tf.app.flags.DEFINE_string( 'restore', '', 'load model path')
 
 gc_default_params = {
     'lr_init': 5e-5,
-    'lr_final': 1e-5,
+    'lr_final': 5e-5,
 }
 ppo_params = {
-    'entropy_coeff': 0.000001,
+    'entropy_coeff': 0.0,
     # 'entropy_coeff_schedule': [[0, 5e-6],[5000000, 1e-6]],
     'use_gae': True,
     'kl_coeff': 0.0,
     "lambda" : FLAGS.lam,
     "gamma" : FLAGS.gamma,
     "clip_param" : 0.2,
-    "sgd_minibatch_size" : 1024,
-    "train_batch_size" : 1024,
+    "sgd_minibatch_size" : 512,
+    "train_batch_size" : 512,
     "num_sgd_iter" : 1,
     "rollout_fragment_length" : 64,
     "grad_clip" : 30,
