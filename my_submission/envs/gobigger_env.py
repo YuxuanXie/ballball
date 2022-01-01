@@ -243,7 +243,7 @@ class GoBiggerEnv(BaseEnv):
                 max_size = max(list(global_state['leaderboard'].values()))
                 # 2. team rank reward
                 team_rank_reward = (np.clip(np.array([cur_size - max_size]) * 0.1, -1, 0) + 0.5) * 0.1
-                team_reward_item = diff_incremental_reawrd + team_rank_reward
+                team_reward_item = diff_incremental_reawrd # + team_rank_reward
                 # print(f"team-{i} -> team_reward = {team_reward_item} -> team_rank_reward = {team_rank_reward} -> diff_incremental_reawrd = {diff_incremental_reawrd}")
                 if global_state['last_time'] >= global_state['total_time']:
                     team_reward_item += cur_size / 100
@@ -256,7 +256,7 @@ class GoBiggerEnv(BaseEnv):
             # team_reward = zero_sum_reward
 
 
-            if abs(global_state['last_time'] % 15 - 0) < 0.01:
+            if global_state['last_time'] >= global_state['total_time']:
                 rank = np.array(list(global_state['leaderboard'].values()))
                 rank = np.argsort(rank)[::-1]
                 final_reward = [10, 0, -5, -10]
