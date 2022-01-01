@@ -41,8 +41,8 @@ tf.app.flags.DEFINE_string( 'restore', '', 'load model path')
 
 
 gc_default_params = {
-    'lr_init': 5e-5,
-    'lr_final': 5e-5,
+    'lr_init': 1e-4,
+    'lr_final': 1e-4,
 }
 ppo_params = {
     'entropy_coeff': 0.0,
@@ -54,10 +54,10 @@ ppo_params = {
     "clip_param" : 0.2,
     "sgd_minibatch_size" : 512,
     "train_batch_size" : 512,
-    "num_sgd_iter" : 1,
+    "num_sgd_iter" : 2,
     "rollout_fragment_length" : 64,
     "grad_clip" : 30,
-    "vf_loss_coeff": 0.1,
+    "vf_loss_coeff": 0.001,
     # "sgd_minibatch_size" : 128*5,
     # "train_batch_size" : 5000,
     # "num_sgd_iter" : 8,
