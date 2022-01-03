@@ -245,9 +245,9 @@ if __name__ == "__main__":
         stop_value=1e10,
         player_num_per_team=3,
         team_num=4,
-        match_time=60,
-        map_height=300,
-        map_width=300,
+        match_time=60*5,
+        map_height=1000,
+        map_width=1000,
         # team_num=4,
         # match_time=200,
         # map_height=1000,
@@ -262,6 +262,6 @@ if __name__ == "__main__":
     )
     env = MAGoBigger(EasyDict(env))
     obs = env.reset()
-    for i in range(1000):
+    for i in range(1600):
         actions = { str(i) : np.array([random.randint(0,2), random.randint(0,2), random.randint(0,3)]) for i in range(9)}
         env.step(actions)

@@ -17,17 +17,19 @@ import pickle
 import numpy as np
 from ray.rllib.utils.torch_utils import convert_to_torch_tensor
 from torch.distributions import Categorical
+from pygame.math import Vector2
 
 
 model_config = {
     "custom_model": "go_bigger", 
     "lstm_cell_size": 128 ,
-    "max_seq_len" : 10,
+    "max_seq_len" : 8,
+    "vf_share_layers": True,
     "custom_model_config": {
         "obs_shape" : 50,
         "entity_shape" : 31,
-        "obs_embedding_size" : 128,
-        "entity_embedding_size" : 128,
+        "obs_embedding_size" : 32,
+        "entity_embedding_size" : 64,
         "all_embedding_size" : 128,
     }
 }
@@ -61,10 +63,26 @@ class PPOBot():
         
         logits, self.state = self.model.forward_rnn(inputs, self.state, [1, 1, 1])
         logits = torch.squeeze(logits, dim=1)
+        logits_split = torch.split(logits, [3,3,4], dim=-1)
+        a = {}
+        agent_id = 0
+        for x, y, type in zip(*logits_split):
+            x = torch.argmax(x, dim=0, keepdim=False).tolist()
+            y = torch.argmax(y, dim=0, keepdim=False).tolist()
+            type = torch.argmax(type, dim=0, keepdim=False).tolist()
+
+            if x == 1 and y == 1:
+                a[agent_id] = np.array([None, None, type]) 
+            else:
+                direction = Vector2([x-1, y-1]).normalize()
+                a[agent_id] = np.array([direction.x, direction.y, type]) 
+
+            agent_id+=1
+
         # actions = torch.argmax(logits, dim=1, keepdim=False).tolist()
-        actions = Categorical(logits=logits).sample().tolist()
+        # actions = Categorical(logits=logits).sample().tolist()
         
-        a = {f'{i}' : self.env._to_raw_action(action) for i, action in zip(self.player_names, actions)}
+        # a = {f'{i}' : self.env._to_raw_action(action) for i, action in zip(self.player_names, actions)}
         return a
 
 
@@ -78,7 +96,7 @@ def launch_a_game():
         map_width=1000,
         map_height=1000,
         save_video=True,
-        match_time=60*5,
+        match_time=60*10,
         save_path='./videos/'
         )) # server的默认配置就是标准的比赛setting
     render = EnvRender(server.map_width, server.map_height) # 引入渲染模块
@@ -91,8 +109,8 @@ def launch_a_game():
         bot_agents.append(BotAgent(player.name)) # 初始化每个bot，注意要给每个bot提供队伍名称和玩家名称 
 
     # ppo_agent = PPOBot("/Users/yuxuan/git/goBigger/my_submission/entry/results/checkpoint_002000/checkpoint-2000")
-    ppo_agent = PPOBot("/Users/yuxuan/git/goBigger/my_submission/entry/results/checkpoint-4000", ['0', '1', '2'])
-
+    # ppo_agent = PPOBot("/Users/yuxuan/git/goBigger/my_submission/entry/results/checkpoint-4000", ['0', '1', '2'])
+    ppo_agent = PPOBot("/Users/yuxuan/ray_results/gb_PPO/PPO_gb_env_18f27_00000_0_2022-01-01_21-31-17/checkpoint_006100/checkpoint-6100", ['0', '1', '2'])
     for i in range(100000):
         # 获取到返回的环境状态信息
         obs = server.obs()
