@@ -31,7 +31,7 @@ tf.app.flags.DEFINE_integer('num_gpus', 1, 'Number of available GPUs')
 tf.app.flags.DEFINE_boolean('use_gpus_for_workers', False, 'Set to true to run workers on GPUs rather than CPUs')
 tf.app.flags.DEFINE_boolean('use_gpu_for_driver', True, 'Set to true to run driver on GPU rather than CPU.')
 # num_workers_per_device increases and the sample time also increases. 2 is better here 
-tf.app.flags.DEFINE_float('num_workers_per_device', 1, 'Number of workers to place on a single device (CPU or GPU)')
+tf.app.flags.DEFINE_float('num_workers_per_device', 2, 'Number of workers to place on a single device (CPU or GPU)')
 tf.app.flags.DEFINE_float('num_cpus_for_driver', 1, 'Number of workers to place on a single device (CPU or GPU)')
 
 tf.app.flags.DEFINE_float('entropy_coeff', 0.00, 'The entropy')
@@ -52,12 +52,12 @@ ppo_params = {
     "lambda" : FLAGS.lam,
     "gamma" : FLAGS.gamma,
     "clip_param" : 0.2,
-    "sgd_minibatch_size" : 512,
-    "train_batch_size" : 512,
-    "num_sgd_iter" : 2,
+    "sgd_minibatch_size" : 1024,
+    "train_batch_size" : 1024,
+    "num_sgd_iter" : 4,
     "rollout_fragment_length" : 64,
     "grad_clip" : 30,
-    "vf_loss_coeff": 0.001,
+    "vf_loss_coeff": 1e-2,
     # "sgd_minibatch_size" : 128*5,
     # "train_batch_size" : 5000,
     # "num_sgd_iter" : 8,
@@ -159,7 +159,7 @@ def setup(env, hparams, algorithm, train_batch_size, num_cpus, num_gpus,
                 # "horizon": 3 * one_layer_length, # it dosnot make done in step function true
                 "lr_schedule":
                 [[0, hparams['lr_init']],
-                    [5000000, hparams['lr_final']]],
+                    [1000000, hparams['lr_final']]],
                 "num_workers": num_workers,
                 "num_gpus": gpus_for_driver,  # The number of GPUs for the driver
                 "num_cpus_for_driver": cpus_for_driver,
@@ -235,6 +235,7 @@ def main(unused_argv):
                 'checkpoint_freq': FLAGS.checkpoint_frequency,
                 "config": config,
                 # "restore": "/Users/yuxuan/git/gobigger/my_submission/entry/results/checkpoint_000800/checkpoint-800",
+                # "restore": "~/ray_results/gb_PPO/PPO_gb_env_18f27_00000_0_2022-01-01_21-31-17/checkpoint_010500/checkpoint-10500", 
             }
         },
     )
