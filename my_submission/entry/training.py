@@ -45,7 +45,7 @@ gc_default_params = {
     'lr_final': 1e-4,
 }
 ppo_params = {
-    'entropy_coeff': 1e-6,
+    'entropy_coeff': 1e-5,
     # 'entropy_coeff_schedule': [[0, 5e-6],[5000000, 1e-6]],
     'use_gae': True,
     'kl_coeff': 0.0,
@@ -57,7 +57,8 @@ ppo_params = {
     "num_sgd_iter" : 4,
     "rollout_fragment_length" : 64,
     "grad_clip" : 30,
-    "vf_loss_coeff": 1e-2,
+    "vf_clip_param" : 100,
+    "vf_loss_coeff": 1,
     # "sgd_minibatch_size" : 128*5,
     # "train_batch_size" : 5000,
     # "num_sgd_iter" : 8,
