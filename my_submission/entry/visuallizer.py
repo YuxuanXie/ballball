@@ -16,7 +16,6 @@ from config.no_spatial import env_config
 import pickle
 import numpy as np
 from ray.rllib.utils.torch_utils import convert_to_torch_tensor
-from torch.distributions import Categorical
 from pygame.math import Vector2
 
 
@@ -58,12 +57,14 @@ class PPOBot():
 
         inputs = []
         for i in range(len(self.player_names)):
-            inputs.append(np.concatenate((bs_transform[0]["scalar_obs"].reshape(1, -1), bs_transform[0]["unit_obs"].reshape(1, -1)), axis=-1))
+            inputs.append(np.concatenate((bs_transform[i]["scalar_obs"].reshape(1, -1), bs_transform[i]["unit_obs"].reshape(1, -1)), axis=-1))
         inputs = torch.from_numpy(np.stack(inputs, axis=0))
-        
+
         logits, self.state = self.model.forward_rnn(inputs, self.state, [1, 1, 1])
         logits = torch.squeeze(logits, dim=1)
         logits_split = torch.split(logits, [3,3,4], dim=-1)
+        import pdb;pdb.set_trace()
+
         a = {}
         agent_id = 0
         for x, y, type in zip(*logits_split):
@@ -72,17 +73,13 @@ class PPOBot():
             type = torch.argmax(type, dim=0, keepdim=False).tolist()
 
             if x == 1 and y == 1:
-                a[agent_id] = np.array([None, None, type]) 
+                a[self.player_names[agent_id]] = np.array([None, None, type]) 
             else:
                 direction = Vector2([x-1, y-1]).normalize()
-                a[agent_id] = np.array([direction.x, direction.y, type]) 
+                a[self.player_names[agent_id]] = np.array([direction.x, direction.y, type]) 
 
             agent_id+=1
-
-        # actions = torch.argmax(logits, dim=1, keepdim=False).tolist()
-        # actions = Categorical(logits=logits).sample().tolist()
-        
-        # a = {f'{i}' : self.env._to_raw_action(action) for i, action in zip(self.player_names, actions)}
+        print(a)
         return a
 
 
@@ -110,14 +107,14 @@ def launch_a_game():
 
     # ppo_agent = PPOBot("/Users/yuxuan/git/goBigger/my_submission/entry/results/checkpoint_002000/checkpoint-2000")
     # ppo_agent = PPOBot("/Users/yuxuan/git/goBigger/my_submission/entry/results/checkpoint-4000", ['0', '1', '2'])
-    ppo_agent = PPOBot("/Users/yuxuan/ray_results/gb_PPO/PPO_gb_env_18f27_00000_0_2022-01-01_21-31-17/checkpoint_006100/checkpoint-6100", ['0', '1', '2'])
+    ppo_agent = PPOBot("/Users/yuxuan/ray_results/gb_PPO/PPO_gb_env_c3e37_00000_0_2022-01-05_18-46-40/checkpoint-7800", ['0', '1', '2'])
     for i in range(100000):
         # 获取到返回的环境状态信息
         obs = server.obs()
         # 动作是一个字典，包含每个玩家的动作
 
-        actions_bot = {bot_agent.name: bot_agent.step(obs[1][bot_agent.name]) for bot_agent in bot_agents}
-        actions = extract_ma_actions(actions_bot)
+        actions = {bot_agent.name: bot_agent.step(obs[1][bot_agent.name]) for bot_agent in bot_agents}
+        # actions = extract_ma_actions(actions_bot)
         
         actions_ppo = ppo_agent.get_actions(obs)
         actions.update(actions_ppo)
