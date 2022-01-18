@@ -41,11 +41,11 @@ tf.app.flags.DEFINE_string( 'restore', '', 'load model path')
 
 
 gc_default_params = {
-    'lr_init': 5e-5,
-    'lr_final': 5e-5,
+    'lr_init': 2e-5,
+    'lr_final': 2e-5,
 }
 ppo_params = {
-    'entropy_coeff': 1e-5,
+    'entropy_coeff': 1e-6,
     # 'entropy_coeff_schedule': [[0, 5e-6],[5000000, 1e-6]],
     'use_gae': True,
     'kl_coeff': 0.0,
@@ -53,7 +53,7 @@ ppo_params = {
     "gamma" : FLAGS.gamma,
     "clip_param" : 0.2,
     "sgd_minibatch_size" : 3072,
-    "train_batch_size" : 3072,
+    "train_batch_size" : 3072, 
     "num_sgd_iter" : 4,
     "rollout_fragment_length" : 64,
     "grad_clip" : 30,
@@ -234,8 +234,7 @@ def main(unused_argv):
                 'checkpoint_freq': FLAGS.checkpoint_frequency,
                 "config": config,
                 # "restore": "~/ray_results/gb_PPO/PPO_gb_env_abf04_00000_0_2022-01-08_10-42-50/checkpoint_022700/checkpoint-22700", 
-                # "restore": "~/ray_results/gb_PPO/PPO_gb_env_8c567_00000_0_2022-01-11_08-36-42/checkpoint_040500/checkpoint-40500",
-                "restore": "~/ray_results/gb_PPO/PPO_gb_env_9b737_00000_0_2022-01-12_15-52-36/checkpoint_051200/checkpoint-51200",
+                "restore": "~/ray_results/gb_PPO/PPO_gb_env_8ae5a_00000_0_2022-01-14_12-07-51/checkpoint_060300/checkpoint-60300",
             }
         },
         # resume=True,
