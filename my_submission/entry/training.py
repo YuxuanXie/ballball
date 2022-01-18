@@ -22,7 +22,7 @@ FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string('exp_name', None, 'Name of the ray_results experiment directory where results are stored.')
 tf.app.flags.DEFINE_string('env', 'gb', 'Name of the environment to rollout. Can be cleanup or harvest.')
-tf.app.flags.DEFINE_string('algorithm', 'PPO', 'Name of the rllib algorithm to use.')
+tf.app.flags.DEFINE_string('algorithm', 'APEX', 'Name of the rllib algorithm to use.')
 tf.app.flags.DEFINE_integer('train_batch_size', 8,'Size of the total dataset over which one epoch is computed.')
 tf.app.flags.DEFINE_integer('checkpoint_frequency', 100,'Number of steps before a checkpoint is saved.')
 tf.app.flags.DEFINE_integer('training_iterations', 200000,'Total number of steps to train for')
@@ -91,18 +91,17 @@ impala_params = {
 
 apex_params = {
     "n_step": 3,
-    "buffer_size": 5000000,
+    "buffer_size": 5e6,
     # TODO(jungong) : add proper replay_buffer_config after
     #     DistributedReplayBuffer type is supported.
-    "learning_starts": 1024,
+    "learning_starts": 2048,
     "train_batch_size": 1024,
-    "rollout_fragment_length": 50,
-    "target_network_update_freq": 50000,
-    "timesteps_per_iteration": 10240,
+    "rollout_fragment_length": 64,
+    "target_network_update_freq": 5e4,
+    "timesteps_per_iteration": 1024*4,
     "exploration_config": {"type": "PerWorkerEpsilonGreedy"},
     "worker_side_prioritization": True,
     "min_iter_time_s": 30,
-    "num_workers":64,
 }
 
 
