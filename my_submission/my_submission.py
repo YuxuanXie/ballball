@@ -13,16 +13,19 @@ from .model.gb import TorchRNNModel
 import pickle
 import numpy as np
 from ray.rllib.utils.torch_utils import convert_to_torch_tensor
+from pygame.math import Vector2
+
 
 model_config = {
     "custom_model": "go_bigger", 
     "lstm_cell_size": 128 ,
-    "max_seq_len" : 10,
+    "max_seq_len" : 8,
+    "vf_share_layers": True,
     "custom_model_config": {
         "obs_shape" : 50,
         "entity_shape" : 31,
-        "obs_embedding_size" : 128,
-        "entity_embedding_size" : 128,
+        "obs_embedding_size" : 32,
+        "entity_embedding_size" : 64,
         "all_embedding_size" : 128,
     }
 }
@@ -31,9 +34,10 @@ class PPOBot():
     def __init__(self, checkpoint_path, player_names) -> None:
         self.checkpoint = pickle.load(open(checkpoint_path, 'rb'))
         self.worker_info = pickle.loads(self.checkpoint['worker'])
-        self.model = TorchRNNModel(self.worker_info['policy_specs']['policy-0'].observation_space, 
-                                    self.worker_info['policy_specs']['policy-0'].action_space, 16, model_config, "PPOBot")
+        self.model = TorchRNNModel(self.worker_info['policy_specs']['policy-0'].observation_space, self.worker_info['policy_specs']['policy-0'].action_space, 16, model_config, "PPOBot")
         self.model.load_state_dict(convert_to_torch_tensor(self.worker_info['state']['policy-0']['weights']))
+        # self.model = TorchRNNModel(None, None, 16, model_config, "PPOBot")
+        # self.model.load_state_dict(torch.load("1.pkl", map_location='cpu'))
         self.env = GoBiggerEnv(env_config)
         self.player_names = player_names
         self.state = self.initial_state()
@@ -55,10 +59,22 @@ class PPOBot():
         
         logits, self.state = self.model.forward_rnn(inputs, self.state, [1, 1, 1])
         logits = torch.squeeze(logits, dim=1)
-        actions = torch.argmax(logits, dim=1, keepdim=False).tolist()
-        a = {f'{i}' : self.env._to_raw_action(action) for i, action in zip(self.player_names, actions)}
-        return a
+        logits_split = torch.split(logits, [3,3,4], dim=-1)
+        a = {}
+        agent_id = 0
+        for x, y, type in zip(*logits_split):
+            x = torch.argmax(x, dim=0, keepdim=False).tolist()
+            y = torch.argmax(y, dim=0, keepdim=False).tolist()
+            type = torch.argmax(type, dim=0, keepdim=False).tolist()
 
+            if x == 1 and y == 1:
+                a[agent_id] = np.array([None, None, type]) 
+            else:
+                direction = Vector2([x-1, y-1]).normalize()
+                a[agent_id] = np.array([direction.x, direction.y, type]) 
+
+            agent_id+=1
+        return a
 
 
 
@@ -88,6 +104,7 @@ class MySubmission(BaseSubmission):
         # self.policy = DQNPolicy(self.cfg.policy, model=self.model).eval_mode
         self.env = GoBiggerEnv(self.cfg)
         # self.botAgents = [BotAgent(i) for i in self.player_names]
+        import pdb; pdb.set_trace()
         self.ppo_agent = PPOBot(os.path.join(self.root_path, 'supplements', 'checkpoint'), player_names)
 
     def get_actions(self, obs):

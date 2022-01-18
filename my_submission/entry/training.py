@@ -57,14 +57,26 @@ ppo_params = {
     "num_sgd_iter" : 4,
     "rollout_fragment_length" : 64,
     "grad_clip" : 30,
-    "vf_clip_param" : 100,
+    "vf_clip_param" : 30,
     "vf_loss_coeff": 1,
+    "explore": True,
+    # Provide a dict specifying the Exploration object's config.
+    # "exploration_config": {
+    #     # The Exploration class to use. In the simplest case, this is the name
+    #     # (str) of any class present in the `rllib.utils.exploration` package.
+    #     # You can also provide the python class directly or the full location
+    #     # of your class (e.g. "ray.rllib.utils.exploration.epsilon_greedy.
+    #     # EpsilonGreedy").
+    #     "type": "EpsilonGreedy",
+    #     # "epsilon_schedule": [[0, 1.0], [1e6, 0.001]],
+    #     # Add constructor kwargs here (if any).
+    # },
     # "sgd_minibatch_size" : 128*5,
     # "train_batch_size" : 5000,
     # "num_sgd_iter" : 8,
-    # "evaluation_interval" : 100,
-    # "evaluation_num_episodes" : 50,
-    # "evaluation_config" : {"explore": False},
+    "evaluation_interval" : 256,
+    "evaluation_num_episodes" : 32,
+    "evaluation_config" : {"explore": False},
     # "batch_mode" : "complete_episodes",
 }
 
