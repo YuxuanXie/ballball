@@ -77,7 +77,7 @@ class TorchRNNModel(TorchRNN, nn.Module):
         self.logits= nn.Sequential(
             nn.Linear(self.rnn_size, 256),
             nn.ReLU(),
-            nn.Linear(256, 6+self.action_type_shape),
+            nn.Linear(256, 36),
         )
         self.values = nn.Sequential(
             nn.Linear(self.rnn_size, 512),

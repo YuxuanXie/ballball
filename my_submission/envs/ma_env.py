@@ -96,6 +96,8 @@ class MAGoBigger(MultiAgentEnv):
     def step(self, actions):
         
         actions_copy = copy.deepcopy(actions)
+        for k, v in actions_copy.items():
+            actions_copy[k] = np.array([v%9%3,v%9//3,v//4])
         actions_copy.update({str(i) : np.array([random.randint(0, 2), random.randint(0, 2), random.randint(0,3)]) for i in range(3, 9)})
         for k, v in actions_copy.items():
             # overlap = self._env._env.obs()[1][k]['overlap']
@@ -155,8 +157,8 @@ class MAGoBigger(MultiAgentEnv):
 
     @property
     def action_space(self):
-        # return Discrete(self.action_type_shape)
-        return MultiDiscrete([3,3,4])
+        return Discrete(36)
+        # return MultiDiscrete([3,3,4])
 
     @property
     def observation_space(self):
@@ -263,5 +265,5 @@ if __name__ == "__main__":
     env = MAGoBigger(EasyDict(env))
     obs = env.reset()
     for i in range(1600):
-        actions = { str(i) : np.array([random.randint(0,2), random.randint(0,2), random.randint(0,3)]) for i in range(9)}
+        actions = { str(i) : np.array([random.randint(0,35)]) for i in range(9)}
         env.step(actions)
