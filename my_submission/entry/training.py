@@ -31,7 +31,7 @@ tf.app.flags.DEFINE_integer('num_gpus', 1, 'Number of available GPUs')
 tf.app.flags.DEFINE_boolean('use_gpus_for_workers', False, 'Set to true to run workers on GPUs rather than CPUs')
 tf.app.flags.DEFINE_boolean('use_gpu_for_driver', True, 'Set to true to run driver on GPU rather than CPU.')
 # num_workers_per_device increases and the sample time also increases. 2 is better here 
-tf.app.flags.DEFINE_float('num_workers_per_device', 2, 'Number of workers to place on a single device (CPU or GPU)')
+tf.app.flags.DEFINE_float('num_workers_per_device', 1, 'Number of workers to place on a single device (CPU or GPU)')
 tf.app.flags.DEFINE_float('num_cpus_for_driver', 1, 'Number of workers to place on a single device (CPU or GPU)')
 
 tf.app.flags.DEFINE_float('entropy_coeff', 0.00, 'The entropy')
@@ -160,7 +160,7 @@ def setup(env, hparams, algorithm, train_batch_size, num_cpus, num_gpus,
         num_gpus_per_worker = spare_gpus / num_workers
         num_cpus_per_worker = 0
     else:
-        spare_cpus = (num_cpus - cpus_for_driver)
+        spare_cpus = (num_cpus - cpus_for_driver-4)
         num_workers = int(spare_cpus * num_workers_per_device)
         num_gpus_per_worker = 0
         num_cpus_per_worker = spare_cpus / num_workers
