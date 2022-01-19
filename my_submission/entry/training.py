@@ -102,6 +102,7 @@ apex_params = {
     "exploration_config": {"type": "PerWorkerEpsilonGreedy"},
     "worker_side_prioritization": True,
     "min_iter_time_s": 30,
+    "use_lstm": False,
 }
 
 

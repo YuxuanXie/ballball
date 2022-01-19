@@ -13,6 +13,7 @@ import numpy as np
 from ray.rllib.models.modelv2 import ModelV2
 from ray.rllib.models.preprocessors import get_preprocessor
 from ray.rllib.models.torch.recurrent_net import RecurrentNetwork as TorchRNN
+from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
 from ray.rllib.utils.annotations import override
 from ray.rllib.utils.framework import try_import_torch
 
@@ -35,7 +36,7 @@ class ScaleDotProductionAttention(nn.Module):
         entity_embedding = torch.matmul(entity_embedding_prob, v)
         return entity_embedding
 
-class TorchRNNModel(TorchRNN, nn.Module):
+class TorchRNNModel(TorchModelV2, nn.Module):
     def __init__(self,
                 obs_space,
                 action_space,
@@ -70,8 +71,8 @@ class TorchRNNModel(TorchRNN, nn.Module):
         self.entity_encoder_v = nn.Linear(self.entity_shape, self.entity_embedding_size)
 
         self.attention = ScaleDotProductionAttention()
-        self.all_encoder = nn.Linear(self.obs_embedding_size + self.entity_embedding_size, self.all_embedding_size)
-        self.rnn = nn.LSTM(input_size=self.all_embedding_size, hidden_size=self.rnn_size, batch_first=True)
+        self.all_encoder = nn.Linear(self.obs_embedding_size + self.entity_embedding_size, self.rnn_size)
+        # self.rnn = nn.LSTM(input_size=self.all_embedding_size, hidden_size=self.rnn_size, batch_first=True)
         # self.logits = nn.Linear(self.rnn_size, self.action_shape)
         # self.values = nn.Linear(self.rnn_size, 1)
         self.logits= nn.Sequential(
@@ -86,24 +87,14 @@ class TorchRNNModel(TorchRNN, nn.Module):
         )
         
 
-    @override(ModelV2)
-    def get_initial_state(self):
-        # TODO: (sven): Get rid of `get_initial_state` once Trajectory
-        #  View API is supported across all of RLlib.
-        # Place hidden states on same device as model.
-        h = [
-            self.obs_encoder.weight.new(1, self.rnn_size).zero_().squeeze(0),
-            self.obs_encoder.weight.new(1, self.rnn_size).zero_().squeeze(0)
-        ]
-        return h
 
     @override(ModelV2)
     def value_function(self):
         assert self._features is not None, "must call forward() first"
         return torch.reshape(self.values(self._features), [-1])
 
-    @override(TorchRNN)
-    def forward_rnn(self, inputs, state, seq_lens):
+    @override(ModelV2)
+    def forward(self, inputs, state, seq_lens):
         """Feeds `inputs` (B x T x ..) through the Gru Unit.
 
         Returns the resulting outputs as a sequence (B x T x ...).
@@ -114,33 +105,35 @@ class TorchRNNModel(TorchRNN, nn.Module):
             NN Outputs (B x T x ...) as sequence.
             The state batches as a List of two items (c- and h-states).
         """
-        obs = inputs[:, :, :50]
+        inputs = inputs['obs_flat']
+        obs = inputs[:, :50]
         bs = inputs.shape[0]
         seq = inputs.shape[1]
-        entities = inputs[:,:,50:].reshape(-1, seq, self.entity_shape)
+        entities = inputs[:,50:].reshape(-1, self.entity_shape)
         mask = entities.sum(axis=-1)
 
         obs_embedding = F.relu(self.obs_encoder(obs))
 
         q, k, v = [self.entity_encoder_q(entities), self.entity_encoder_k(entities), self.entity_encoder_v(entities)]
-        q = q.reshape(bs*seq, -1, self.entity_embedding_size)
-        k = k.reshape(bs*seq, -1, self.entity_embedding_size)
-        v = v.reshape(bs*seq, -1, self.entity_embedding_size)
-        mask = mask.reshape(bs*seq, -1, 1)
+        q = q.reshape(bs, -1, self.entity_embedding_size)
+        k = k.reshape(bs, -1, self.entity_embedding_size)
+        v = v.reshape(bs, -1, self.entity_embedding_size)
+        mask = mask.reshape(bs, -1, 1)
         mask_attn = torch.matmul(mask, mask.permute(0, 2, 1))
 
         entity_embeddings = self.attention(q, k, v, mask=mask_attn.detach())
 
         entity_embedding = torch.mean(entity_embeddings, dim=1, keepdim=True)
-        entity_embedding = entity_embedding.reshape(bs, seq, self.entity_embedding_size)
+        entity_embedding = entity_embedding.reshape(bs, self.entity_embedding_size)
         # import pdb; pdb.set_trace()
         all_embedding = torch.cat((obs_embedding, entity_embedding), dim=-1)
         core = F.relu(self.all_encoder(all_embedding))
         
         # packed_input = pack_padded_sequence(output, self.sequence_length)
-        self._features, [h,c] = self.rnn(core, [torch.unsqueeze(state[0], 0), torch.unsqueeze(state[1], 0)])
+        # self._features, [h,c] = self.rnn(core, [torch.unsqueeze(state[0], 0), torch.unsqueeze(state[1], 0)])
+        self._features = core
         logits = self.logits(self._features)
-        return logits, [torch.squeeze(h, 0), torch.squeeze(c, 0)]
+        return logits, state #, [torch.squeeze(h, 0), torch.squeeze(c, 0)]
 
 
 
