@@ -44,7 +44,7 @@ class TorchRNNModel(TorchModelV2, nn.Module):
                 model_config,
                 name,
                 fc_size=64,
-                lstm_state_size=64):
+                lstm_state_size=128):
         nn.Module.__init__(self)
         super().__init__(obs_space, action_space, num_outputs, model_config,
                         name)
@@ -78,7 +78,7 @@ class TorchRNNModel(TorchModelV2, nn.Module):
         self.logits= nn.Sequential(
             nn.Linear(self.rnn_size, 256),
             nn.ReLU(),
-            nn.Linear(256, 36),
+            nn.Linear(256, 256),
         )
         self.values = nn.Sequential(
             nn.Linear(self.rnn_size, 512),
@@ -132,8 +132,8 @@ class TorchRNNModel(TorchModelV2, nn.Module):
         # packed_input = pack_padded_sequence(output, self.sequence_length)
         # self._features, [h,c] = self.rnn(core, [torch.unsqueeze(state[0], 0), torch.unsqueeze(state[1], 0)])
         self._features = core
-        logits = self.logits(self._features)
-        return logits, state #, [torch.squeeze(h, 0), torch.squeeze(c, 0)]
+        output = self.logits(self._features)
+        return output, []#, [torch.squeeze(h, 0), torch.squeeze(c, 0)]
 
 
 

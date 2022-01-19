@@ -31,7 +31,7 @@ tf.app.flags.DEFINE_integer('num_gpus', 1, 'Number of available GPUs')
 tf.app.flags.DEFINE_boolean('use_gpus_for_workers', False, 'Set to true to run workers on GPUs rather than CPUs')
 tf.app.flags.DEFINE_boolean('use_gpu_for_driver', True, 'Set to true to run driver on GPU rather than CPU.')
 # num_workers_per_device increases and the sample time also increases. 2 is better here 
-tf.app.flags.DEFINE_float('num_workers_per_device', 1, 'Number of workers to place on a single device (CPU or GPU)')
+tf.app.flags.DEFINE_float('num_workers_per_device', 2, 'Number of workers to place on a single device (CPU or GPU)')
 tf.app.flags.DEFINE_float('num_cpus_for_driver', 1, 'Number of workers to place on a single device (CPU or GPU)')
 
 tf.app.flags.DEFINE_float('entropy_coeff', 0.00, 'The entropy')
@@ -91,18 +91,17 @@ impala_params = {
 
 apex_params = {
     "n_step": 3,
-    "buffer_size": 5e6,
+    "buffer_size": int(1e5),
     # TODO(jungong) : add proper replay_buffer_config after
     #     DistributedReplayBuffer type is supported.
     "learning_starts": 2048,
-    "train_batch_size": 1024,
+    "train_batch_size": 1024*2,
     "rollout_fragment_length": 64,
-    "target_network_update_freq": 5e4,
-    "timesteps_per_iteration": 1024*4,
+    "target_network_update_freq": int(1e3),
+    "timesteps_per_iteration": 1024*16,
     "exploration_config": {"type": "PerWorkerEpsilonGreedy"},
     "worker_side_prioritization": True,
     "min_iter_time_s": 30,
-    "use_lstm": False,
 }
 
 
