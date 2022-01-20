@@ -91,7 +91,7 @@ impala_params = {
 
 apex_params = {
     "n_step": 3,
-    "buffer_size": int(1e5),
+    "buffer_size": int(4e5),
     # TODO(jungong) : add proper replay_buffer_config after
     #     DistributedReplayBuffer type is supported.
     "learning_starts": 2048,
@@ -99,9 +99,15 @@ apex_params = {
     "rollout_fragment_length": 64,
     "target_network_update_freq": int(1e3),
     "timesteps_per_iteration": 1024*16,
-    "exploration_config": {"type": "PerWorkerEpsilonGreedy"},
+    "exploration_config": {
+        "type": "PerWorkerEpsilonGreedy",
+        "initial_epsilon": 1.0,
+        "final_epsilon": 0.005,
+        "epsilon_timesteps": int(5e6),  # Timesteps over which to anneal epsilon.
+    },
     "worker_side_prioritization": True,
     "min_iter_time_s": 30,
+    
 }
 
 
