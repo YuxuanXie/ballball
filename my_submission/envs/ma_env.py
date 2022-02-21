@@ -1,3 +1,4 @@
+from distutils.log import error
 from typing import List
 
 # from torch import random
@@ -97,7 +98,23 @@ class MAGoBigger(MultiAgentEnv):
         
         actions_copy = copy.deepcopy(actions)
         for k, v in actions_copy.items():
-            actions_copy[k] = np.array([v%9%3,v%9//3,v//4])
+            # actions_copy[k] = np.array([v%9%3,v%9//3,v//4])
+            try:
+                action_type = v // 4
+            except:
+                import pdb; pdb.set_trace()
+            direction = v % 4
+            if direction == 0:
+                actions_copy[k] = np.array([0, 1, action_type])
+            elif direction == 1:
+                actions_copy[k] = np.array([0, -1, action_type])
+            elif direction == 2:
+                actions_copy[k] = np.array([-1, 0, action_type])
+            elif direction == 3:
+                actions_copy[k] = np.array([1, 0, action_type])
+            else:
+                raise Exception("Out bound!")
+
         actions_copy.update({str(i) : np.array([random.randint(0, 2), random.randint(0, 2), random.randint(0,3)]) for i in range(3, 9)})
         for k, v in actions_copy.items():
             # overlap = self._env._env.obs()[1][k]['overlap']
@@ -157,7 +174,7 @@ class MAGoBigger(MultiAgentEnv):
 
     @property
     def action_space(self):
-        return Discrete(36)
+        return Discrete(16)
         # return MultiDiscrete([3,3,4])
 
     @property
@@ -265,5 +282,5 @@ if __name__ == "__main__":
     env = MAGoBigger(EasyDict(env))
     obs = env.reset()
     for i in range(1600):
-        actions = { str(i) : np.array([random.randint(0,35)]) for i in range(9)}
+        actions = { str(i) : np.array([random.randint(0,15)]) for i in range(9)}
         env.step(actions)
