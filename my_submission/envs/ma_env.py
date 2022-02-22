@@ -115,6 +115,9 @@ class MAGoBigger(MultiAgentEnv):
             else:
                 raise Exception("Out bound!")
 
+            actions_copy[k][0] += 1
+            actions_copy[k][1] += 1
+
         actions_copy.update({str(i) : np.array([random.randint(0, 2), random.randint(0, 2), random.randint(0,3)]) for i in range(3, 9)})
         for k, v in actions_copy.items():
             # overlap = self._env._env.obs()[1][k]['overlap']
